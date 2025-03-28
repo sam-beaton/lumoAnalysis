@@ -18,7 +18,7 @@ params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', pa
 
 %% Change path and search for task files 
 % change directory 
-%cd(params.dataLoc);
+cd(params.dataLoc);
 % Recursively get all .nirs files with correct task and age
 timepointNum = str2double(params.timepoint(1:2)); % Converts '01' -> 1, '48' -> 48
 timepointNum = sprintf('%02d', timepointNum); % Ensures zero-padded format
