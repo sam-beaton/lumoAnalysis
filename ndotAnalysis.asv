@@ -5,33 +5,27 @@ addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT')); %neurodot 
 addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NIRFASTer')); %nirfast toolbox for meshing - remove? only needed if generating meshes
 addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %contains edited functions where necessary for use in image recon
 
-% define parameters
+%% Define parameters
 params.timepoint = '12'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
-params.parentDir = '/Users/sambe/dot'; %overarching directory containing .nirs files
-params.preProcDir = 'standard'; %suffix after 'preproc-' in derivatives folder 
 
+%overarching directory containing .nirs files
+params.parentDir = '/Users/sambe/dot'; 
+%processing method (%suffix after 'preproc-' in derivatives folder)
+params.preProcDir = 'standard'; 
+%cap info for each participant, in .csv format
+capCSV = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/cappingData.csv'; 
+
+%% Derivative parameters
+%cap names corresponding to info in capCSV file
+capNames = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/capNames.csv'; % DOESN'T CHANGE
 % mesh directory dependant on age only
 meshDir = strcat('/Users/sambe/Data/imageRecon/neurodot/Meshes/', params.timepoint, 'mo/'); %folder containing meshes
 %data location task and age dependant
 params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', params.preProcDir));
 
-%% Change path and search for task files 
-% change directory 
-cd(params.dataLoc);
-% Recursively get all .nirs files with correct task and age
-timepointNum = str2double(params.timepoint(1:2)); % Converts '01' -> 1, '48' -> 48
-timepointNum = sprintf('%02d', timepointNum); % Ensures zero-padded format
-fileList = dir(fullfile(params.dataLoc, '**', sprintf('*ses-%s*task-%s*.nirs', timepointNum, params.task)));
-
-% Extract file paths directly
-matchingFiles = fullfile({fileList.folder}, {fileList.name});
-
-% load cap information
-%info for each participant
-capCSV = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/cappingData.csv'; %csv format
-%cap names corresponding to info in capCSV file
-capNames = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/capNames.csv';
+%% Search for task files 
+matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
 for nsub = 2%1:length(matchingFiles)
