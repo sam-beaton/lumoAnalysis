@@ -4,7 +4,7 @@ close all; clear all;
 % Add toolboxes and relevant directories
 addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT')); %neurodot toolbox
 addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NIRFASTer')); %nirfast toolbox for meshing
-addpath(genpath('/Users/sambe/Documents/MATLAB/matlabProjects/DOT')); %contains edited functions where necessary for use in image recon
+addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %contains edited functions where necessary for use in image recon
 
 %% User-set file params
 %%% Change where necessary

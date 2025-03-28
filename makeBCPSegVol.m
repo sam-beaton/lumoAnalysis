@@ -3,7 +3,7 @@
 clear; clc; close all
 
 addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT')); %neurodot toolbox
-addpath(genpath('/Users/sambe/Documents/MATLAB/matlabProjects/DOT')); %contains edited function to save nii file in specified folder
+addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %contains edited function to save nii file in specified folder
 
 %% Parameters for visualization
 p.Cmap='jet'; p.Scale=5; p.Th.P=0; p.Th.N=-p.Th.P; p.PD=1; p.BG=[0,0,0];
@@ -105,7 +105,7 @@ if ~isfolder(outputDir)
     mkdir(outputDir);
 end
 
-sbDotSaveVolumetricData(seg_mask, infoHead, strcat(timePoint,'_0Months3T_head_segVol'), outputDir, 'nii')
+adaptedSaveVolumetricData(seg_mask, infoHead, strcat(timePoint,'_0Months3T_head_segVol'), outputDir, 'nii')
 [mask,infoMask]=LoadVolumetricData(strcat(timePoint,'_0Months3T_head_segVol'), outputDir, 'nii');
 PlotSlices(mask, infoMask, p)
 

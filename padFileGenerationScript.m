@@ -4,6 +4,8 @@
 % When running this script, please DO NOT HIT THE GREEN TRIANGLE "RUN" BUTTON
 % Please run individual code sections by highlighting and evalutating the highlighted selection
 % Or, you can hit "ctrl + enter" on each section of code once the section's background turns beige
+%
+% SLB adapted from 
 
 %% Pathing and output directory
 clear all; close all; clc;

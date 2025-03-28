@@ -2,7 +2,7 @@
 % Toolbox paths
 addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT')); %neurodot toolbox
 addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NIRFASTer')); %nirfast toolbox for meshing - remove? only needed if generating meshes
-addpath(genpath('/Users/sambe/Documents/MATLAB/matlabProjects/DOT')); %contains edited functions where necessary for use in image recon
+addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %contains edited functions where necessary for use in image recon
 
 %params
 cohort = 'study';
