@@ -44,13 +44,7 @@ for nsub = 1%1:length(matchingFiles)
     lmdata = logmean(data); %for viewing preprocessed data
 
     %derive blocklength from stim info
-    baseTimes = info.paradigm.synchtimes(info.paradigm.Pulse_1);
-    baseTimes = baseTimes(2:end-1);
-    baseDiffs = zeros(length(baseTimes-1), 1);
-    for iBase = 1:length(baseDiffs)-1
-        baseDiffs(iBase) = baseTimes(iBase+1)-baseTimes(iBase);
-    end
-    params.dt = floor(mean(baseDiffs));
+    params.dt = analysisTools.getBlockLength(info);
     
     % Get cap name 
     capName = analysisTools.getInfantCap(capCSV, capNames, params.timepoint, matchingFiles{nsub});
