@@ -112,22 +112,10 @@ function [data, info] = adaptedNirs2ndot(filename, save_file, output)
         % Synchtypes will be as follows: Rest = 1, Left = 2, Right = 3;
         info.paradigm.synchtype = zeros(size(info.paradigm.synchpts)); % initialize synchtype AFTER synchpts created so its the correct size
         for k = 1:num_stim
-            % get Pulse names - edited for HaND paradigm by SLB 29/3/25
-            stimName = nirsData.CondNames{k};
+            stimName = nirsDataCondNames{k};
             switch stimName
-                case 'Q'
-                    field_names{k} = 'Pulse_1'; 
-                case 'P'
-                    field_names{k} = 'Pulse_2'; 
-                case 'R'
-                    field_names{k} = 'Pulse_3'; 
-                case 'S'
-                    field_names{k} = 'Pulse_4'; 
-                case 'T'
-                    field_names{k} = 'Pulse_5'; 
-                case 'U'
-                    field_names{k} = 'Pulse_6';   
-            end
+
+            field_names{k} = ['Pulse_', nirsData.CondNames{k}]; % get Pulse names
             [~,info.paradigm.(field_names{k})] = ismember(synchs(k).tp, synchTot); % set Pulse
             info.paradigm.synchtype(info.paradigm.(field_names{k})) = k; % set synchtype
         end

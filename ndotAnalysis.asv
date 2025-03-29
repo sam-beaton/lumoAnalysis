@@ -1,11 +1,12 @@
-%% Pathing and parameters
+%% Initialise and load toolboxes
 clear all, close all;
 % Toolbox paths
 addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT')); %neurodot toolbox
 addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NIRFASTer')); %nirfast toolbox for meshing - remove? only needed if generating meshes
 addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %contains edited functions where necessary for use in image recon
 
-%% Define parameters
+%% Pathing and parameters
+% ---------- User-defined parameters ------------
 params.timepoint = '12'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
@@ -13,12 +14,19 @@ params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 params.parentDir = '/Users/sambe/dot'; 
 %processing method (%suffix after 'preproc-' in derivatives folder)
 params.preProcDir = 'standard'; 
+% directory for (statistical) outputs
+outputDir=strcat('/Users/sambe/Data/imageRecon/neurodot/workbench/'); %Output Directory for files
 %cap info for each participant, in .csv format
 capCSV = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/cappingData.csv'; 
 
-%% Derivative parameters
-%cap names corresponding to info in capCSV file
+% ---------- Constant parameters -------------
+% cap names corresponding to info in capCSV file
 capNames = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/capNames.csv'; % DOESN'T CHANGE
+% directory with Jacobians (A matrices) and PADs fitted to age-specific
+% head models
+jacobianDir=strcat('/Users/sambe/Data/imageRecon/neurodot/Jacobians/');
+
+% ---------- Derivative parameters -------------
 % mesh directory dependant on age only
 meshDir = strcat('/Users/sambe/Data/imageRecon/neurodot/Meshes/', params.timepoint, 'mo/'); %folder containing meshes
 %data location task and age dependant
@@ -28,37 +36,32 @@ params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', pa
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 2%1:length(matchingFiles)
-
+for nsub = 1%1:length(matchingFiles)
+    
+    %load/get .nirs data in ndot file form
     [data, info] = analysisTools.getNdotFile(matchingFiles{nsub});
 
+    lmdata = logmean(data); %for viewing preprocessed data
+
+    %derive blocklength from stim info
+    baseTimes = info.paradigm.synchtimes(info.paradigm.Pulse_1);
+    baseTimes = baseTimes(2:end-1);
+    baseDiffs = zeros(length(baseTimes-1));
+    for iBase = 1:length(baseDiffs)
+        baseDiffs(iBase) = baseTimes(iBase+1)-baseTimes(iBase);
+    end
+    params.dt = floor(mean(baseDiffs));
+    
+    % Get cap name 
     capName = analysisTools.getInfantCap(capCSV, capNames, params.timepoint, matchingFiles{nsub});
+    
+
+  
+
+
 
 end
 
-
-jacobianDir=strcat('/Users/sambe/Data/imageRecon/neurodot/Jacobians/', capName, '_', timePoint, 'mo/');
-
-outputDir=strcat('/Users/sambe/Data/imageRecon/neurodot/workbench/', capName, '_', timePoint, 'mo'); %Output Directory for files
-
-nirsFile = fullfile(parentDir, cohort, strcat(timePoint, 'mo'), task, 'nirs', preProcDir, filename);
-nDotFile = fullfile(parentDir, cohort, strcat(timePoint, 'mo'), task, 'nDot', preProcDir, filename);
-
-%%
-nirsFile = '/Users/sambe/dot/nirs/sub-053b/ses-12/nirs/sub-053b_ses-12_task-hand_run-02.nirs'
-nDotFile = '/Users/sambe/dot/derivatives/ndot/sub-053b/ses-12/nirs/sub-053b_ses-12_task-hand_run-02'
-
-capName = cell2mat(capInfoInfant{find(testingIDs == testingID), strcat('x', timePoint, 'mo_cap_name')});
-
-%% Convert data to Neurodot format
-%second variable = 1 saves file; change to 0 if saving not necessary
-% data: (preprocessed) intensity/attenuation data
-% info: SDfile/array file structure
-
-% =============== NEED INFO IF LOADING MESH SPECIFIC LATER? =============
-% ========== NEED FLAGS AS IN NEURODOT IMAGERECONSTRUCTION SCRIPT? ======
-
-[data, info] = sbDataNirs2ndot(nirsFile, 1, nDotFile);
 
 %% Load support files
 % Load mesh
