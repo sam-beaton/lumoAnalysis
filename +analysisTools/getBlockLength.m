@@ -4,11 +4,11 @@ function dt = getBlockLength(info)
 % info
     
     % Get all baseline timings
-    baseTimes = info.paradigm.synchtimes(info.paradigm.Pulse_1);
+    baseTimes = info.paradigmFull.synchtimes(info.paradigmFull.Pulse_1);
     baseTimes = baseTimes(2:end-1); %ignore end baseline stims in case of time delay
     
     % Initialise array to store differences
-    baseDiffs = zeros(length(baseTimes-1), 1);
+    baseDiffs = zeros(length(baseTimes)-1, 1);
 
     % Calculate time differences between baseline stim occurrences
     for iBase = 1:length(baseDiffs)-1

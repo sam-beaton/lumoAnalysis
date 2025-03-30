@@ -36,27 +36,20 @@ params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', pa
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 1%1:length(matchingFiles)
+for nsub = 1:length(matchingFiles)
     
     %load/get .nirs data in ndot file form
     [data, info] = analysisTools.getNdotFile(matchingFiles{nsub});
+    %[data, info] = analysisTools.getNdotFile('/Users/sambe/dot/nirs/sub-053b/ses-12/nirs/sub-053b_ses-12_task-hand_run-02.nirs');
 
     lmdata = logmean(data); %for viewing preprocessed data
 
     %derive blocklength from stim info
-    baseTimes = info.paradigm.synchtimes(info.paradigm.Pulse_1);
-    baseTimes = baseTimes(2:end-1);
-    baseDiffs = zeros(length(baseTimes-1));
-    for iBase = 1:length(baseDiffs)
-        baseDiffs(iBase) = baseTimes(iBase+1)-baseTimes(iBase);
-    end
-    params.dt = floor(mean(baseDiffs));
+    params.dt = analysisTools.getBlockLength(info);
     
     % Get cap name 
     capName = analysisTools.getInfantCap(capCSV, capNames, params.timepoint, matchingFiles{nsub});
     
-
-  
 
 
 
@@ -67,8 +60,7 @@ end
 % Load mesh
 % Load parcellation 
 % Load A-matrix
-% Load PAD file
-load([jacobianDir, 'Pad_HD_Mesh_', timePoint, 'mo_', capName, '.mat']); %loads as 'info'
+
 
 %% View pre-processed data
 keep = info.pairs.WL==2 & info.pairs.r2d < 40 & info.MEAS.GI; % measurements to include
@@ -88,7 +80,7 @@ xlabel('Frequency (Hz)');ylabel('|X(f)|');xlim([1e-3 1])
 nlrGrayPlots_180818(lmdata,info); % Gray Plot with synch points
 
 %% Block Averaging the measurement data and view
-badata = BlockAverage(lmdata, info.paradigm.synchpts(info.paradigm.Pulse_2), dt);
+badata = BlockAverage(data, info.paradigm.synchpts(info.paradigm.Pulse_2), params.dt);
 
 badata=bsxfun(@minus,badata,mean(badata,2));
 

@@ -8,11 +8,11 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 
 %% User-set file params
 %%% Change where necessary
-timePoint = '06'; %age of infant: '01', '06' or '12'
-capName='GA00370_MisLeft'; %name of JSON file containing array info
-jacobianDir=strcat('/Volumes/G-DRIVE ArmorATD/imageRecon/neurodot/Jacobians/', capName, '_', timePoint, 'mo/');
-meshDir = strcat('/Volumes/G-DRIVE ArmorATD/imageRecon/neurodot/Meshes/', timePoint, 'mo/'); %folder containing meshes
-outputDir=strcat('/Volumes/G-DRIVE ArmorATD/imageRecon/neurodot/workbench/', capName, '_', timePoint, 'mo'); %Output Directory for files
+timePoint = '12'; %age of infant: '01', '06' or '12'
+capName='GA00440'; %name of JSON file containing array info
+jacobianDir=strcat('/Users/sambe/imageRecon/neurodot/Jacobians/');
+meshDir = strcat('/Users/sambe/imageRecon/neurodot/Meshes/'); %folder containing meshes
+outputDir=strcat('/Users/sambe/imageRecon/neurodot/workbench/'); %Output Directory for files
 
 %%% Shouldn't need changing:
 ldmeshname=[strcat('LD_Mesh_',timePoint,'mo')];     % LD Mesh name

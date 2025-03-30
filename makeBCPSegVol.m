@@ -8,7 +8,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 %% Parameters for visualization
 p.Cmap='jet'; p.Scale=5; p.Th.P=0; p.Th.N=-p.Th.P; p.PD=1; p.BG=[0,0,0];
 
-timePoint = '01';
+timePoint = '06';
 registeredImgsDir = strcat('/Users/sambe/mri/registered/UNC_to_NeuroDev/No Mask/', timePoint, 'mo');
 
 %% Plot "_head" space together
@@ -96,7 +96,7 @@ seg_mask(seg_mask == 1) = 4;
 % replace voxels in head mask with voxels from brain mask
 seg_mask(mask_bin ~=0) = mask_bin(mask_bin ~=0);
 % PlotSlices(seg_mask, infoHead); %visualize in grayscale
-%PlotSlices(seg_mask, infoHead, p); %in color
+%q
 
 %% Save segmentation
 

@@ -45,8 +45,9 @@ function [data, info] = adaptedNirs2ndot(filename, save_file, output)
 % Creates output folder if doesn't already exist
 %
 % Edited 28/3/25
-% Suppresses message about 2D source and detector locations
-% Adds info.MEAS.GI using nirs.SD.MeasListAct
+% - Suppresses message about 2D source and detector locations
+% - Adds info.MEAS.GI using nirs.SD.MeasListAct
+% - Stores stim/pulse data for every channel
 
 
     %% Parameters and Initialization
@@ -85,13 +86,15 @@ function [data, info] = adaptedNirs2ndot(filename, save_file, output)
     end
     
     
-    
     %% Paradigm
 
     % Initialize variables
     num_stim = size(nirsData.s,2);
     num_synchs = sum(nirsData.s == 1);
     field_names = cell(num_stim,1);
+    if isfield(nirsData, 'sCh')
+        num_synchs_ch = sum(nirsData.sCh(:) > 0);
+    end
     
     if num_synchs == 0
         % do nothing, don't create and fill info.paradigm as it'll be empty anywyas
@@ -129,12 +132,69 @@ function [data, info] = adaptedNirs2ndot(filename, save_file, output)
                     field_names{k} = 'Pulse_6';   
             end
             [~,info.paradigm.(field_names{k})] = ismember(synchs(k).tp, synchTot); % set Pulse
-            info.paradigm.synchtype(info.paradigm.(field_names{k})) = k; % set synchtype
+            % set synchtype (number for stim). altered, as didn't account
+            % for split recordings
+            splits = strsplit(field_names{k}, '_');
+            info.paradigm.synchtype(info.paradigm.(field_names{k})) = str2num(splits{2}); 
         end
 
         % Set synchtimes
         info.paradigm.synchtimes = synchTot/info.system.framerate;
     end
+
+    if ~exist('num_synchs_ch', 'var') || num_synchs_ch  == 0
+        % do nothing; very unlikely, but in case there are no retained
+        % stims for *any* channel
+    else
+        %store channel stim info for within-channel block avg.
+        info.paradigmFull.sCh = nirsData.sCh;
+        
+        % Populate Pulse fields and synchtype for complete paradigm
+        % see above loop (info.paradigm...) for info.
+        
+        % Get stim timing and type
+        [rowStim, colStim] = find(nirsData.s ~= 0);
+        A = [rowStim, colStim];
+        A = sortrows(A); %col1: sample point of stim; col2: stim number
+
+        % set sample points for stims
+        info.paradigmFull.synchpts = A(:,1);
+        % Set synchtimes
+        info.paradigmFull.synchtimes = info.paradigmFull.synchpts/info.system.framerate; 
+        % initialize synchtype AFTER synchpts created so its the correct
+        % size:
+        info.paradigmFull.synchtype = zeros(size(info.paradigmFull.synchpts)); 
+        
+        % get correct stim type according to condition names (in case of
+        % split file)
+        for k = 1:num_stim
+            % find index of stim occurrences
+            stimOccur = find(A(:, 2) == k);
+            % find stim name (letter)
+            stimName = nirsData.CondNames{k};
+            switch stimName
+                case 'Q'
+                    info.paradigmFull.synchtype(stimOccur) = 1;
+                    info.paradigmFull.Pulse_1 = stimOccur;
+                case 'P'
+                    info.paradigmFull.synchtype(stimOccur) = 2;
+                    info.paradigmFull.Pulse_2 = stimOccur;
+                case 'R'
+                    info.paradigmFull.synchtype(stimOccur) = 3;
+                    info.paradigmFull.Pulse_3 = stimOccur;
+                case 'S'
+                    info.paradigmFull.synchtype(stimOccur) = 4;
+                    info.paradigmFull.Pulse_4 = stimOccur;
+                case 'T'
+                    info.paradigmFull.synchtype(stimOccur) = 5;
+                    info.paradigmFull.Pulse_5 = stimOccur;
+                case 'U'
+                    info.paradigmFull.synchtype(stimOccur) = 6;
+                    info.paradigmFull.Pulse_6 = stimOccur;
+            end
+        end
+    end
+
     
     
     %% Optodes
