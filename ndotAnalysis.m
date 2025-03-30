@@ -36,7 +36,7 @@ params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', pa
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 1%1:length(matchingFiles)
+for nsub = 2%1:length(matchingFiles)
     
     %load/get .nirs data in ndot file form
     [data, info] = analysisTools.getNdotFile(matchingFiles{nsub});
@@ -62,7 +62,7 @@ end
 % Load parcellation 
 % Load A-matrix
 % Load PAD file
-load([jacobianDir, 'Pad_HD_Mesh_', timePoint, 'mo_', capName, '.mat']); %loads as 'info'
+TEST = load([jacobianDir, 'Pad_HD_Mesh_', params.timepoint, 'mo_', capName, '.mat']); %loads as 'info'
 
 %% View pre-processed data
 keep = info.pairs.WL==2 & info.pairs.r2d < 40 & info.MEAS.GI; % measurements to include
