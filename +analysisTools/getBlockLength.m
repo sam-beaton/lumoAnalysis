@@ -1,4 +1,4 @@
-function dt = getBlockLength(info)
+function [dtPre, dtAfter] = getBlockLength(info)
 
 % Derive blocklength for block averaging from baseline stimuslus timing 
 % info
@@ -15,7 +15,11 @@ function dt = getBlockLength(info)
         baseDiffs(iBase) = baseTimes(iBase+1)-baseTimes(iBase);
     end
 
-    % Take mean of differences and round down for block length
-    dt = floor(mean(baseDiffs));
+    % Take mean of differences and round down for post-stim block length
+    dtAfter = floor(mean(baseDiffs));
+
+    %calculate proportional pre-stim block for statistical significance
+    %testing
+    dtPre = ceil(dt./10);
 
 end

@@ -36,7 +36,7 @@ params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', pa
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 1:length(matchingFiles)
+for nsub = 2%1:length(matchingFiles)
     
     %load/get .nirs data in ndot file form
     [data, info] = analysisTools.getNdotFile(matchingFiles{nsub});
@@ -45,11 +45,18 @@ for nsub = 1:length(matchingFiles)
     lmdata = logmean(data); %for viewing preprocessed data
 
     %derive blocklength from stim info
-    params.dt = analysisTools.getBlockLength(info);
+    [params.dtPre, params.dtAfter] = analysisTools.getBlockLength(info);
     
     % Get cap name 
     capName = analysisTools.getInfantCap(capCSV, capNames, params.timepoint, matchingFiles{nsub});
     
+    % get A matrix name
+    % load A matrix
+    % invert A
+
+    % get parcellation name
+
+
 
 
 
@@ -80,7 +87,7 @@ xlabel('Frequency (Hz)');ylabel('|X(f)|');xlim([1e-3 1])
 nlrGrayPlots_180818(lmdata,info); % Gray Plot with synch points
 
 %% Block Averaging the measurement data and view
-badata = BlockAverage(data, info.paradigmFull.synchpts(info.paradigmFull.Pulse_2), params.dt);
+badata = analysisTools.adaptedBlockAverage(data, info.paradigmFull.synchpts(info.paradigmFull.Pulse_2), params.dt,  info);
 
 badata=bsxfun(@minus,badata,mean(badata,2));
 
