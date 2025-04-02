@@ -1,4 +1,4 @@
-function [BA_out,BSTD_out,BT_out,blocks] = adaptedBlockAverage(data_in, pulse, dt, dtPre, info, Tkeep)
+function [BA_out,BSTD_out,BT_out,blocks] = adaptedBlockAverage(data_in, params, info, Tkeep)
 
 % BLOCKAVERAGE Averages data by stimulus blocks.
 %
@@ -37,52 +37,110 @@ function [BA_out,BSTD_out,BT_out,blocks] = adaptedBlockAverage(data_in, pulse, d
 % ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 %
 % See Also: NORMALIZE2RANGE_TTS.
+%
+% Edited 1/4/25 SLB:
+% Accounts for trial rejection on a channel-by-channel basis using
+% info.paradigmFull.sCh (see 'getNdotFile.m')
+% Incorporates a baseline into the block (for later use when testing
+% statistical significance) and accounts for possibility this baseline may
+% protrude beyond start of data in file.
 
 %% Parameters and Initialization.
 dims = size(data_in); %'data': (channels)*(sample points)
 Nt = dims(end); % last sample point - Assumes time is always the last dimension.
 NDtf = (ndims(data_in) > 2); % sets to one if data >2 dimensional (needs transforming)
-Nbl = length(pulse); % number of stim presentations for given stim marker (pulse) - based on full paradigm
-% only use default standard temporal mask if not provided and
-% info.paradigmFull.sCh doesn't exist
-if ~exist('Tkeep','var')
-    if ~isfield('info', 'paradigmFull')
-        if ~isfield('info.paradigmFull', 'sCh')
-            Tkeep=ones(Nt,1)==1; 
-        end
-    end
-end
-
+pulse = info.paradigmFull.Pulse_2;
+Nbl = length(pulse); % number of presentations for first stim - based on full paradigm
 
 % Check to make sure that the block after the last synch point for this
 % pulse does not exceed the data's time dimension. 
-if (dt + pulse(end)-1) > Nt
-    Nbl = Nbl - 1; % (2) -------  NEEDS TO BE CHANNEL BY CHANNEL -----------
+if (info.paradigmFull.synchpts(pulse(end)) + params.dtAfter) > Nt
+    pulse = pulse(1:end-1);
+    Nbl = Nbl - 1; 
 end
-% () ------- NEED TO HAVE THE SAME FOR pulse(1)-(preStimSamps) -------
+% Check to make sure that the block before the first synch point for this
+% pulse does not exceed the data's time dimension. 
+if (info.paradigmFull.synchpts(pulse(1)) - params.dtPre) < 1
+    pulse = pulse(2:end);
+    Nbl = Nbl - 1; 
+end
 
 %% N-D Input (for 3-D or N-D voxel spaces).
 if NDtf
     data_in = reshape(data_in, [], Nt);
 end
 
+%% only use default standard temporal mask if not provided and
+% info.paradigmFull.sCh doesn't exist
+if ~exist('Tkeep','var')
+    Tkeep=ones(size(data_in)); 
+    if isfield(info, 'paradigmFull') && isfield(info.paradigmFull, 'sCh')
+        %find stim markers where motion was detected (negative values)
+        [rows, cols] = find(info.paradigmFull.sCh < 0);
+        negStims = [rows, cols];
+        negStims = sortrows(negStims);
+
+        %select negative stim markers corresponding to pulse/stimulus for
+        %averaging
+        pulseRows = ismember(negStims(:,1), info.paradigmFull.synchpts(pulse));
+        pulseLocs = negStims(pulseRows, :);
+        
+        % set blocks in Tkeep to 0 if a negative stim number
+        for i = 1:size(pulseLocs, 1)
+            stimTime = pulseLocs(i, 1);  % stimulus time
+            stimChan = pulseLocs(i, 2);  % channel
+            startRow = max(stimTime - params.dtPre, 1);   % Ensure index is within bounds
+            endRow = min(stimTime + params.dtAfter, size(data_in, 1)); % Ensure index is within bounds
+            % Set the specified column (channel) to zero in the selected range
+            Tkeep(stimChan, startRow:endRow) = 0;
+        end
+    end
+end
+
 %% Incorporate Tkeep  
-data_in(:,~Tkeep)=NaN; %sets unwanted samplepoints to NaN % (2) -------  NEEDS TO BE CHANNEL BY CHANNEL OR USE sCh TO GENERATE Tkeep -----------
+data_in(~Tkeep)=NaN; %sets unwanted samplepoints to NaN 
 
 
 %% Cut data into blocks.
 Nm=size(data_in,1); %number of channels
-blocks=zeros(Nm,dt,Nbl); % (numChans)*(sample points post-stim)*(number of stim presentations) (2) -------  NEEDS TO BE CHANNEL BY CHANNEL OR USE sCh TO GENERATE Tkeep -----------
-% (2) -------  NEED TO USE sCh TO GENERATE Tkeep CHANNEL BY CHANNEL  -----------
-
+dt = params.dtPre+params.dtAfter; % number of samples in block
+blocks=zeros(Nm,dt,Nbl); % (numChans)*(sample points post-stim)*(number of stim presentations)
 for k = 1:Nbl
-    if (pulse(k) + dt - 1)<=Nt %checks block contained within recording
-        blocks(:, :, k) = data_in(:, pulse(k):(pulse(k) + dt - 1)); % () -------  NEEDS TO BE CHANNEL BY CHANNEL -----------
+    synchSamp = info.paradigmFull.synchpts(pulse(k)); % timing of pulse/stim
+    blockStart = synchSamp - params.dtPre; % Start index of the block
+    blockEnd = synchSamp + params.dtAfter - 1; % Block end index
+
+    % if block extends before start of the recording:
+    if blockStart < 1
+        dtbPre = abs(blockStart) + 1; % get # missing time points @ start
+        blockStart = 1; % adjust 'start' to file start
     else
-        dtb=pulse(k)+dt-1-Nt;
-        blocks(:, :, k) =cat(2,data_in(:,pulse(k):end),NaN(size(data_in,1),dtb)); % NEEDS TO BE CHANNEL BY CHANNEL & ACCOUNT FOR 2 SECS PRIOR TO STIM
-%         blocks(:, :, k) =nan;
+        dtbPre = 0; 
     end
+
+    % if block extends beyond end of the recording
+    if blockEnd > Nt
+        dtbPost = blockEnd - Nt; % get # missing time points @ end
+        blockEnd = Nt; % adjust 'end' to file end
+    else
+        dtbPost = 0; 
+    end
+
+    % extract available data
+    dataSegment = data_in(:, blockStart:blockEnd); 
+
+    % add NaN padding where needed via concatenation 
+    blocks(:, :, k) = cat(2, NaN(Nm, dtbPre), dataSegment, NaN(Nm, dtbPost)); 
+
+    % Original structure, not finished (only accounts for block extending
+    % beyond end of file):
+
+%     if (synchSamp + dt - 1) <= Nt %checks block contained within recording
+%         blocks(:, :, k) = data_in(:, synchSamp-params.dtPre:synchSamp+params.dtAfter - 1); 
+%     else
+%         dtb = synchSamp + dt - 1 - Nt; % ADAPT
+%         blocks(:, :, k) = cat(2,data_in(:,synchSamp:end),NaN(size(data_in,1),dtb)); % ADAPT
+%     end
 end
 
 %% Average blocks and return.

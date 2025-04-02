@@ -20,6 +20,11 @@ function [dtPre, dtAfter] = getBlockLength(info)
 
     %calculate proportional pre-stim block for statistical significance
     %testing
-    dtPre = ceil(dt./10);
+    dtPre = ceil(dtAfter./10);
+
+    % convert back to sample points scale
+    dtAfter = dtAfter*info.system.framerate;
+    dtPre = dtPre*info.system.framerate;
+
 
 end

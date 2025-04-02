@@ -36,7 +36,7 @@ params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', pa
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 2%1:length(matchingFiles)
+for nsub = 25%1:length(matchingFiles)
     
     %load/get .nirs data in ndot file form
     [data, info] = analysisTools.getNdotFile(matchingFiles{nsub});
@@ -70,7 +70,7 @@ end
 
 
 %% View pre-processed data
-keep = info.pairs.WL==2 & info.pairs.r2d < 40 & info.MEAS.GI; % measurements to include
+keep = info.pairs.WL==2 & info.pairs.r2d < 45 & info.MEAS.GI; % measurements to include
 
 figure('Position',[100 100 550 780])
 subplot(3,1,1); plot(lmdata(keep,:)'); 
@@ -87,7 +87,7 @@ xlabel('Frequency (Hz)');ylabel('|X(f)|');xlim([1e-3 1])
 nlrGrayPlots_180818(lmdata,info); % Gray Plot with synch points
 
 %% Block Averaging the measurement data and view
-badata = analysisTools.adaptedBlockAverage(data, info.paradigmFull.synchpts(info.paradigmFull.Pulse_2), params.dt,  info);
+badata = analysisTools.adaptedBlockAverage(data, params, info);
 
 badata=bsxfun(@minus,badata,mean(badata,2));
 
