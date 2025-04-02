@@ -8,7 +8,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 %% Parameters for visualization
 p.Cmap='jet'; p.Scale=5; p.Th.P=0; p.Th.N=-p.Th.P; p.PD=1; p.BG=[0,0,0];
 
-timePoint = '06';
+timePoint = '12';
 registeredImgsDir = strcat('/Users/sambe/mri/registered/UNC_to_NeuroDev/No Mask/', timePoint, 'mo');
 
 %% Plot "_head" space together

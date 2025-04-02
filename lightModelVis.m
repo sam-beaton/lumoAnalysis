@@ -25,7 +25,7 @@ end
 cd(outputDir);
 
 % Load a Segmented Volume
-[maskSeg,infoSeg]=LoadVolumetricData([strcat(timePoint,'_0Months3T_head_segVol')],strcat('/Volumes/G-DRIVE ArmorATD/imageRecon/neurodot/Segmentations/', timePoint,'mo'),'nii');
+[maskSeg,infoSeg]=LoadVolumetricData([strcat(timePoint,'_0Months3T_head_segVol')],strcat('/Users/sambe/imageRecon/neurodot/Segmentations/', timePoint,'mo'),'nii');
 
 % Load PAD file
 load([jacobianDir, 'Pad_HD_Mesh_', timePoint, 'mo_', capName, '.mat']); %loads as 'info'
@@ -157,7 +157,7 @@ parcLight = intersect(sensMask, indRegMaskParc);
 indRegParcBin  = zeros([size(t1)]);
 indRegParcBin(parcLight) = 1; %create binary mat. to multiply by FooV
 
-% sensitivity mask containing only GM/parcellated voxels
+% sensitivity mask containing only GM
 fooVParcOnly = indRegParcBin.*fooV;
 PlotSlices(t1,dim,pA,fooVParcOnly)
 
@@ -188,6 +188,8 @@ paramParc.TC = 1; %use true color mapping
 paramParc.cbmode = 0; %use custom colorbar limits
 paramParc.Cmap.P = colorcube; %use custom colormap
 paramParc.PD = 1; %values in image positive-definite
+
+PlotSlices(t1,dim,paramParc,parcelsSens)
 
 sbDotPlotParcelSlices(t1,dim,paramParc,parcelsSens)
 
