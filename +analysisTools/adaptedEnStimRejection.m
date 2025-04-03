@@ -1,4 +1,4 @@
-% [s,tRange] = adaptedEnStimRejection(t,s,tIncAuto,tIncMan,tRange)
+% [s,tRange, sCh] = adaptedEnStimRejection(t,s,tIncAuto,tIncMan,tRange,tIncCh)
 %
 % Excludes stims that fall within the time points identified as 
 % motion artifacts from HRF calculation.
@@ -42,7 +42,7 @@
 % Takes channel-specific time inclusion and outputs channel specific stim
 % inclusion
 
-function [s,tRange, sCh] = adaptedEnStimRejection(t,s,tIncAuto,tIncMan,tRange,tIncCh)
+function [s, tRange, sCh] = adaptedEnStimRejection(t,s,tIncAuto,tIncMan,tRange,tIncCh)
 
 dt = (t(end)-t(1))/length(t);
 tRangeIdx = [floor(tRange(1)/dt):ceil(tRange(2)/dt)];

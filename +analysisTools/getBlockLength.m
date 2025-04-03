@@ -11,7 +11,12 @@ function [dtPre, dtAfter] = getBlockLength(info)
         dtPre = abs(info.paradigmFull.tHRF(1)).*info.system.framerate;
     else
         % Get all baseline timings
-        baseTimes = info.paradigmFull.synchtimes(info.paradigmFull.Pulse_1);
+        try
+            baseTimes = info.paradigmFull.synchtimes(info.paradigmFull.Pulse_1);
+        catch
+            baseTimes = info.paradigm.synchtimes(info.paradigm.Pulse_1);
+        end
+        
         baseTimes = baseTimes(2:end-1); %ignore end baseline stims in case of time delay
         
         % Initialise array to store differences
@@ -33,5 +38,9 @@ function [dtPre, dtAfter] = getBlockLength(info)
         dtAfter = dtAfter*info.system.framerate;
         dtPre = dtPre*info.system.framerate;
     end
+    
+    % converts to integer
+    dtAfter = round(dtAfter);
+    dtPre = round(dtPre);
 
 end

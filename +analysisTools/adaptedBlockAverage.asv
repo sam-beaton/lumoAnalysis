@@ -137,7 +137,7 @@ for k = 1:Nbl
     %set whole row to NaN if marked in Tkeep (this way avoids incursion
     %into other blocks)
     for iChan = 1:size(dataSegment, 1)
-        if sum(isnan(dataSegment(iChan, :))) > 0
+        if sum(isnan(dataSegment(ichan, :))) > 0
             dataSegment(iChan, :) = NaN;
         end
     end

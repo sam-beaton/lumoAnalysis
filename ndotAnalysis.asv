@@ -46,8 +46,11 @@ for nsub = 25%1:length(matchingFiles)
     %[data, info] = analysisTools.getNdotFile('/Users/sambe/dot/nirs/sub-053b/ses-12/nirs/sub-053b_ses-12_task-hand_run-02.nirs');
 
     lmdata = logmean(data); %for viewing preprocessed data
+    keep = info.pairs.WL==2 & info.pairs.r2d < params.maxChannelDistance & info.MEAS.GI; % measurements to include
+
 
     %derive blocklength from stim info
+
     [params.dtPre, params.dtAfter] = analysisTools.getBlockLength(info);
     
     % Get cap name 
@@ -89,14 +92,18 @@ nlrGrayPlots_180818(lmdata,info); % Gray Plot with synch points
 
 %% Block Averaging the measurement data and view
 close all;
+
 badata = analysisTools.adaptedBlockAverage(lmdata, params, info);
+
+%badata = BlockAverage(lmdata, info.paradigm.synchpts(info.paradigm.Pulse_2), params.dtAfter);
 
 badata=bsxfun(@minus,badata,mean(badata,2));
 
 badataKeep = badata(keep,:);
+badataPlot = badata(184, :);
 
 figure('Position',[100 100 550 780])
-subplot(2,1,1); plot(badataKeep'); 
+subplot(2,1,1); plot(badataPlot'); 
 set(gca,'XLimSpec','tight'), xlabel('Time (samples)'), 
 ylabel('log(\phi/\phi_0)') 
 m=max(max(abs(badata(keep,:))));
@@ -146,12 +153,14 @@ for j = 1:2
 end
 
 %% Spectroscopy
-%%%% ============ GENERATE VALUES FOR 'E' HERE USING sbPrePCalcDPF ========
+% Generate extinction coeffts if not already in workspace
 if ~exist('E', 'var')
     %load('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT/Support_Files/A_Matrices/E.mat')
     %exs = GetExtinctions([nirs.SD.Lambda]);
     load('Extinction_Coefficients.mat'); % loads ext. coeffts, including Prahl's
     spectra{1}=1;spectra{2}=1; % placeholders
+    %Generate matrix of ext. coeffts.
+    % Rows: (1) lower lambda, (2) higher lambda. Cols: (1) HbO, (2) HbR
     E = Generate_Spectroscopy_Matrix([info.pairs.lambda(1), info.pairs.lambda(end)], spectra, ExtCoeffs.Prahl);
 end
 cortex_Hb = spectroscopy_img(cortex_mu_a, E);
