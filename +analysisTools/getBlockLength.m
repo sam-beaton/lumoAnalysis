@@ -16,7 +16,7 @@ function [dtPre, dtAfter] = getBlockLength(info)
     end
 
     % Take mean of differences and round down for post-stim block length
-    dtAfter = floor(mean(baseDiffs));
+    dtAfter = ceil(mean(baseDiffs));
 
     %calculate proportional pre-stim block for statistical significance
     %testing

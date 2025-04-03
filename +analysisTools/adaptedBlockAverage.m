@@ -49,7 +49,7 @@ function [BA_out,BSTD_out,BT_out,blocks] = adaptedBlockAverage(data_in, params, 
 dims = size(data_in); %'data': (channels)*(sample points)
 Nt = dims(end); % last sample point - Assumes time is always the last dimension.
 NDtf = (ndims(data_in) > 2); % sets to one if data >2 dimensional (needs transforming)
-pulse = info.paradigmFull.Pulse_2;
+pulse = [info.paradigmFull.Pulse_2; info.paradigmFull.Pulse_3; info.paradigmFull.Pulse_4];
 Nbl = length(pulse); % number of presentations for first stim - based on full paradigm
 
 % Check to make sure that the block after the last synch point for this
@@ -109,22 +109,24 @@ for k = 1:Nbl
     synchSamp = info.paradigmFull.synchpts(pulse(k)); % timing of pulse/stim
     blockStart = synchSamp - params.dtPre; % Start index of the block
     blockEnd = synchSamp + params.dtAfter - 1; % Block end index
+    dtbPre = 0; 
+    dtbPost = 0;
 
-    % if block extends before start of the recording:
-    if blockStart < 1
-        dtbPre = abs(blockStart) + 1; % get # missing time points @ start
-        blockStart = 1; % adjust 'start' to file start
-    else
-        dtbPre = 0; 
-    end
-
-    % if block extends beyond end of the recording
-    if blockEnd > Nt
-        dtbPost = blockEnd - Nt; % get # missing time points @ end
-        blockEnd = Nt; % adjust 'end' to file end
-    else
-        dtbPost = 0; 
-    end
+%     % if block extends before start of the recording:
+%     if blockStart < 1
+%         dtbPre = abs(blockStart) + 1; % get # missing time points @ start
+%         blockStart = 1; % adjust 'start' to file start
+%     else
+%         dtbPre = 0; 
+%     end
+% 
+%     % if block extends beyond end of the recording
+%     if blockEnd > Nt
+%         dtbPost = blockEnd - Nt; % get # missing time points @ end
+%         blockEnd = Nt; % adjust 'end' to file end
+%     else
+%         dtbPost = 0; 
+%     end
 
     % extract available data
     dataSegment = data_in(:, blockStart:blockEnd); 

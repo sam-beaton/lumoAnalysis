@@ -38,7 +38,7 @@ params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', pa
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 25%1:length(matchingFiles)
+for nsub = 5%25%1:length(matchingFiles)
     
     %load/get .nirs data in ndot file form
     [data, info] = analysisTools.getNdotFile(matchingFiles{nsub});
@@ -46,6 +46,8 @@ for nsub = 25%1:length(matchingFiles)
     %[data, info] = analysisTools.getNdotFile('/Users/sambe/dot/nirs/sub-053b/ses-12/nirs/sub-053b_ses-12_task-hand_run-02.nirs');
 
     lmdata = logmean(data); %for viewing preprocessed data
+    keep = info.pairs.WL==2 & info.pairs.r2d < params.maxChannelDistance & info.MEAS.GI; % measurements to include
+
 
     %derive blocklength from stim info
     [params.dtPre, params.dtAfter] = analysisTools.getBlockLength(info);
@@ -59,9 +61,6 @@ for nsub = 25%1:length(matchingFiles)
     % invert A
 
     % get parcellation name
-
-
-
 
 
 end
@@ -91,18 +90,40 @@ xlabel('Frequency (Hz)');ylabel('|X(f)|');xlim([1e-3 1])
 nlrGrayPlots_180818(lmdata,info); % Gray Plot with synch points
 
 %% Block Averaging the measurement data and view
-badata = analysisTools.adaptedBlockAverage(data, params, info);
+close all;
+badata = analysisTools.adaptedBlockAverage(lmdata, params, info);
 
 badata=bsxfun(@minus,badata,mean(badata,2));
 
+badataKeep = badata(keep,:);
+
 figure('Position',[100 100 550 780])
-subplot(2,1,1); plot(badata(keep,:)'); 
+subplot(2,1,1); plot(badataKeep'); 
 set(gca,'XLimSpec','tight'), xlabel('Time (samples)'), 
 ylabel('log(\phi/\phi_0)') 
 m=max(max(abs(badata(keep,:))));
-subplot(2,1,2); imagesc(badata(keep,:),[-1,1].*m); 
+subplot(2,1,2); imagesc(badataKeep,[-1,1].*m); 
 colorbar('Location','northoutside');
 xlabel('Time (samples)');ylabel('Measurement #')
+
+%% stat testing
+close all;
+
+keepSig = zeros(size(badataKeep, 1), 1);
+
+for iChan = 1:size(badataKeep, 1)
+    [h, p] = ttest2(badataKeep(iChan, 1:(1+params.dtPre)), badataKeep(iChan, 100:140), 'Vartype', 'unequal'); % Welch's t-test
+    if h == 1
+        keepSig(iChan) = 1;
+    end
+end
+
+
+% for iChan = 50:75 %size(badataKeep, 1)
+%     figure
+%     plot(badataKeep(iChan, :));
+% end
+
 
 
 %% RECONSTRUCTION PIPELINE
@@ -127,12 +148,14 @@ for j = 1:2
 end
 
 %% Spectroscopy
-%%%% ============ GENERATE VALUES FOR 'E' HERE USING sbPrePCalcDPF ========
+% Generate extinction coeffts if not already in workspace
 if ~exist('E', 'var')
     %load('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT/Support_Files/A_Matrices/E.mat')
     %exs = GetExtinctions([nirs.SD.Lambda]);
     load('Extinction_Coefficients.mat'); % loads ext. coeffts, including Prahl's
     spectra{1}=1;spectra{2}=1; % placeholders
+    %Generate matrix of ext. coeffts.
+    % Rows: (1) lower lambda, (2) higher lambda. Cols: (1) HbO, (2) HbR
     E = Generate_Spectroscopy_Matrix([info.pairs.lambda(1), info.pairs.lambda(end)], spectra, ExtCoeffs.Prahl);
 end
 cortex_Hb = spectroscopy_img(cortex_mu_a, E);
