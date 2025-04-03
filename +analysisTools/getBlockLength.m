@@ -16,11 +16,11 @@ function [dtPre, dtAfter] = getBlockLength(info)
     end
 
     % Take mean of differences and round down for post-stim block length
-    dtAfter = ceil(mean(baseDiffs));
+    dtAfter = floor(mean(baseDiffs));
 
     %calculate proportional pre-stim block for statistical significance
     %testing
-    dtPre = ceil(dtAfter./10);
+    dtPre = ceil(dtAfter./5);
 
     % convert back to sample points scale
     dtAfter = dtAfter*info.system.framerate;

@@ -50,6 +50,7 @@ for nsub = 5%25%1:length(matchingFiles)
 
 
     %derive blocklength from stim info
+
     [params.dtPre, params.dtAfter] = analysisTools.getBlockLength(info);
     
     % Get cap name 

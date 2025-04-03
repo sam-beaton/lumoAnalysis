@@ -140,6 +140,11 @@ function [data, info] = adaptedNirs2ndot(filename, save_file, output)
 
         % Set synchtimes
         info.paradigm.synchtimes = synchTot/info.system.framerate;
+
+        %set block lims if possible
+        if isfield(nirsData, 'tHRF')
+            info.paradigm.tHRF = nirsData.tHRF;
+        end
     end
 
     if ~exist('num_synchs_ch', 'var') || num_synchs_ch  == 0
@@ -165,6 +170,11 @@ function [data, info] = adaptedNirs2ndot(filename, save_file, output)
         % size:
         info.paradigmFull.synchtype = zeros(size(info.paradigmFull.synchpts)); 
         
+        %set block lims if possible
+        if isfield(nirsData, 'tHRF')
+            info.paradigmFull.tHRF = nirsData.tHRF;
+        end
+
         % get correct stim type according to condition names (in case of
         % split file)
         for k = 1:num_stim

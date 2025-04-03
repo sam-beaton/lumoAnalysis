@@ -112,21 +112,21 @@ for k = 1:Nbl
     dtbPre = 0; 
     dtbPost = 0;
 
-%     % if block extends before start of the recording:
-%     if blockStart < 1
-%         dtbPre = abs(blockStart) + 1; % get # missing time points @ start
-%         blockStart = 1; % adjust 'start' to file start
-%     else
-%         dtbPre = 0; 
-%     end
-% 
-%     % if block extends beyond end of the recording
-%     if blockEnd > Nt
-%         dtbPost = blockEnd - Nt; % get # missing time points @ end
-%         blockEnd = Nt; % adjust 'end' to file end
-%     else
-%         dtbPost = 0; 
-%     end
+    % if block extends before start of the recording:
+    if blockStart < 1
+        dtbPre = abs(blockStart) + 1; % get # missing time points @ start
+        blockStart = 1; % adjust 'start' to file start
+    else
+        dtbPre = 0; 
+    end
+
+    % if block extends beyond end of the recording
+    if blockEnd > Nt
+        dtbPost = blockEnd - Nt; % get # missing time points @ end
+        blockEnd = Nt; % adjust 'end' to file end
+    else
+        dtbPost = 0; 
+    end
 
     % extract available data
     dataSegment = data_in(:, blockStart:blockEnd); 
