@@ -16,7 +16,7 @@ function capName = getInfantCap(capCSV, capNames, timepoint, filename)
     idMatchRows = contains(capInfoInfant.con_participantid_q1, subSplit{2}(1:3)); 
     % find correct age - underscores prevent 1/12 confusion
     idTable = capInfoInfant(idMatchRows, :);
-    ageMatchRow = contains(idTable.redcap_event_name, strcat('_', timepoint, '_'));
+    ageMatchRow = contains(idTable.redcap_event_name, strcat(timepoint(2), '_'));
     ageMatchRow = find(ageMatchRow);
     % get cap code usedin redcap
     capCode = num2str(idTable(ageMatchRow, :).cap_size_code);

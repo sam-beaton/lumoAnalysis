@@ -31,8 +31,8 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 
 %% User-set file params
 %%% Change where necessary
-timePoint = '12'; %age of infant: '01', '06' or '12'
-padname='GA00440'; %name of JSON file containing array info
+timePoint = '01'; %age of infant: '01', '06' or '12'
+padname='GA00370'; %name of JSON file containing array info
 meshDir = '/Users/sambe/imageRecon/neurodot/Meshes/'; %TEMP
 outputDir = '/Users/sambe/imageRecon/neurodot/Jacobians/'; %TEMP
 padDir = '/Users/sambe/imageRecon/neurodot/PADs/'; %TEMP

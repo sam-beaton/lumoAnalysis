@@ -7,7 +7,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '12'; %'01', '06' or '12'
+params.timepoint = '01'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %overarching directory containing .nirs files
@@ -38,23 +38,40 @@ params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', pa
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 25%1:length(matchingFiles)
+for nsub = 59%1:length(matchingFiles)
     
-    %load/get .nirs data in ndot file form
+    % load/get .nirs data in ndot file form
     [data, info] = analysisTools.getNdotFile(matchingFiles{nsub});
     %nirs = load(matchingFiles{nsub}, '-mat');
     %[data, info] = analysisTools.getNdotFile('/Users/sambe/dot/nirs/sub-053b/ses-12/nirs/sub-053b_ses-12_task-hand_run-02.nirs');
 
+    % data-dependent values and parameters
     lmdata = logmean(data); %for viewing preprocessed data
-    keep = info.pairs.WL==2 & info.pairs.r2d < params.maxChannelDistance & info.MEAS.GI; % measurements to include
-
-
-    %derive blocklength from stim info
-
+    keep = info.pairs.WL==2 & info.pairs.r3d < params.maxChannelDistance & info.MEAS.GI; % measurements to include
+    % Derive blocklength from stim info
     [params.dtPre, params.dtAfter] = analysisTools.getBlockLength(info);
-    
     % Get cap name 
     capName = analysisTools.getInfantCap(capCSV, capNames, params.timepoint, matchingFiles{nsub});
+
+    % View pre-processed data
+    keep = info.pairs.WL==2 & info.pairs.r3d < params.maxChannelDistance & info.MEAS.GI; % measurements to include
+    
+    figure('Position',[100 100 550 780])
+    subplot(3,1,1); plot(lmdata(keep,:)'); 
+    set(gca,'XLimSpec','tight'), xlabel('Time (samples)'), 
+    ylabel('log(\phi/\phi_0)') 
+    m=max(max(abs(lmdata(keep,:))));
+    subplot(3,1,2); imagesc(lmdata(keep,:),[-1,1].*m); 
+    colorbar('Location','northoutside');
+    xlabel('Time (samples)');ylabel('Measurement #')
+    [ftmag,ftdomain] = fft_tts(squeeze(mean(lmdata(keep,:),1)),info.system.framerate); % Generate average spectrum
+    subplot(3,1,3); semilogx(ftdomain,ftmag);
+    xlabel('Frequency (Hz)');ylabel('|X(f)|');xlim([1e-3 1])
+    
+    nlrGrayPlots_180818(lmdata,info); % Gray Plot with synch points
+
+    % Block average
+    
     
     % get A matrix name
     A_fn = strcat('A_', capName, '_on_HD_Mesh_', params.timepoint, 'mo.mat');
@@ -74,7 +91,7 @@ end
 
 
 %% View pre-processed data
-keep = info.pairs.WL==2 & info.pairs.r2d < params.maxChannelDistance & info.MEAS.GI; % measurements to include
+keep = info.pairs.r3d < params.maxChannelDistance & info.MEAS.GI; % measurements to include
 
 figure('Position',[100 100 550 780])
 subplot(3,1,1); plot(lmdata(keep,:)'); 
@@ -94,33 +111,36 @@ nlrGrayPlots_180818(lmdata,info); % Gray Plot with synch points
 close all;
 
 badata = analysisTools.adaptedBlockAverage(lmdata, params, info);
-
-%badata = BlockAverage(lmdata, info.paradigm.synchpts(info.paradigm.Pulse_2), params.dtAfter);
-
 badata=bsxfun(@minus,badata,mean(badata,2));
-
 badataKeep = badata(keep,:);
 
+nSamples = size(badataKeep, 2);
+timeAxis = linspace(-params.dtPre, params.dtAfter, nSamples);
+
 figure('Position',[100 100 550 780])
-subplot(2,1,1); plot(badataKeep'); 
-set(gca,'XLimSpec','tight'), xlabel('Time (samples)'), 
-ylabel('log(\phi/\phi_0)') 
+subplot(2,1,1); 
+plot(timeAxis, badataKeep'); 
+set(gca,'XLimSpec', 'tight');
+xlabel('Time (0.1s)');
+ylabel('log(\phi/\phi_0)'); 
 m=max(max(abs(badataKeep)));
-subplot(2,1,2); imagesc(badataKeep,[-1,1].*m); 
+subplot(2,1,2); 
+imagesc(timeAxis, 1:size(badataKeep,1), badataKeep,[-1,1].*m); 
 colorbar('Location','northoutside');
-xlabel('Time (samples)');ylabel('Measurement #')
+xlabel('Time (0.1s)');
+ylabel('Measurement #')
 
 %% stat testing
-close all;
-
-keepSig = zeros(size(badataKeep, 1), 1);
-
-for iChan = 1:size(badataKeep, 1)
-    [h, p] = ttest2(badataKeep(iChan, 1:(1+params.dtPre)), badataKeep(iChan, 100:140), 'Vartype', 'unequal'); % Welch's t-test
-    if h == 1
-        keepSig(iChan) = 1;
-    end
-end
+% close all;
+% 
+% keepSig = zeros(size(badataKeep, 1), 1);
+% 
+% for iChan = 1:size(badataKeep, 1)
+%     [h, p] = ttest2(badataKeep(iChan, 1:(1+params.dtPre)), badataKeep(iChan, 100:140), 'Vartype', 'unequal'); % Welch's t-test
+%     if h == 1
+%         keepSig(iChan) = 1;
+%     end
+% end
 
 
 % for iChan = 50:75 %size(badataKeep, 1)
