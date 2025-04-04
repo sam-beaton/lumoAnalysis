@@ -1,4 +1,4 @@
-function [data, info] = adaptedNirs2ndot(filename, save_file, output)
+function data = adaptedNirs2ndot(filename, save_file, output)
 
     % Translation from .nirs to NeuroDOT-compatible format
     % This function takes in a .nirs file and converts it to NeuroDOT 
@@ -62,7 +62,17 @@ function [data, info] = adaptedNirs2ndot(filename, save_file, output)
     
     %% Data
     nirsData = load(filename, '-mat');
-    data = nirsData.d';
+    data.d= nirsData.d';
+    if isfield(nirsData, 'dod')
+        data.od = nirsData.dod';
+    end
+    if isfield(nirsData, 'dc')
+        hboData = squeeze(nirsData.dc(:,1,:));
+        hbrData = squeeze(nirsData.dc(:,2,:));
+        concData = [hboData, hbrData];
+        data.dc = concData';
+    end
+
     
     %% Check presence of multiple SD variables
     if isfield(nirsData, 'SD3D')
@@ -387,8 +397,11 @@ function [data, info] = adaptedNirs2ndot(filename, save_file, output)
     end
 
     %% MEAS
-    info.MEAS.GI = nirsData.SD.MeasListAct; %SLB added 29/3/25added 
+    info.MEAS.GI = nirsData.SD.MeasListAct; %SLB added 29/3/25
     
+
+    %% Combine into one object
+    data.info = info;
     
     %% Save Output NeuroDOT File
     if save_file == 1
@@ -398,6 +411,6 @@ function [data, info] = adaptedNirs2ndot(filename, save_file, output)
         end
         outputfilename=fullfile(p,f);
 
-        save(outputfilename,'data','info');
+        save(outputfilename,'data');
     end
 end

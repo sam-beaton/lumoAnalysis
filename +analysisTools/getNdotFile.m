@@ -1,4 +1,4 @@
-function [data, info] = getNdotFile(nirsFile)
+function data = getNdotFile(nirsFile)
 
 % Uses a nirs filename (in BIDS format) to either load an existing
 % corresponding ndot file if it exists, or create one if not
@@ -16,6 +16,6 @@ function [data, info] = getNdotFile(nirsFile)
         load(nDotFile)
     else
         % convert nirs to ndot file
-        [data, info] = analysisTools.adaptedNirs2ndot(nirsFile, 1, nDotFile);
+        data = analysisTools.adaptedNirs2ndot(nirsFile, 1, nDotFile);
     end
 end
