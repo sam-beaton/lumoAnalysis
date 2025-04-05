@@ -7,7 +7,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '12'; %'01', '06' or '12'
+params.timepoint = '01'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
@@ -71,7 +71,7 @@ end
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = 6%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     % ------ Reset file-specific parameters -----
     paramsFile = params;
@@ -130,9 +130,9 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     
     % Perform spectroscopy
     fprintf('Performing Spectroscopy\n') 
-    cortexHb = spectroscopy_img(cortexMuA, E);
+    cortexHb = analysisTools.adaptedSpectroscopy_img(cortexMuA, E);
 
-    fprintf('Creating derivative chromophore matrices\n') 
+    %fprintf('Creating derivative chromophore matrices\n') 
     % Variables below needed? can just pass them as written.
     %cortexHbO = cortexHb(:, :, 1);
     %cortexHbR = cortexHb(:, :, 2);
@@ -191,9 +191,23 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     % get number of pulses
     numBlocks = length(allPulses);
     
-    for iLambda = 1:numel(fieldnames(parcelsSens))
+    for iChrom = 1:numel(fieldnames(parcelsSens))
+    
+        parcelData = parcelAveraged{iChrom};
+        
+        %initialise storage for this chromophore
+        numParcels = size(parcelAveraged{iChrom}, 1);
+        parcelBlockAveraged = zeros(numParcels, numBlocks, (paramsFile.dtPre+paramsFile.dtAfter+1));
+    
+        for iParc = 1:numParcels
+            for iBlock = 1:numBlocks
+                parcelBlockAveraged(iParc, iBlock, :) = parcelData(iParc, allPulses(iBlock)-paramsFile.dtPre:allPulses(iBlock)+paramsFile.dtAfter);
+            end
+        end
+        
+    end
 
-        for i = 1:length
+
 
 
     %clearvars -except myImportantVar1 myImportantVar2 myImportantVar3
@@ -202,7 +216,40 @@ end
 
 %% TESTING
 
+% get pulse indices
+allPulses = [];
+% loop through Pulse_2 to Pulse_6 (Pulse_1 is baseline)
+for i = 2:6
+    fieldName = sprintf('Pulse_%d', i);
+    
+    % if the field exists
+    if isfield(data.info.paradigmFull, fieldName)
+        thisPulse = data.info.paradigmFull.(fieldName); %give temp name          
+        allPulses = [allPulses; thisPulse(:)]; % add to existing
+    end
+end
+% get sample point where pulse/stim marker occurs
+allPulses = data.info.paradigmFull.synchpts(allPulses);
 
+% store block data
+% get number of pulses
+numBlocks = length(allPulses);
+
+for iChrom = 1:numel(fieldnames(parcelsSens))
+
+    parcelData = parcelAveraged{iChrom};
+    
+    %initialise storage for this chromophore
+    numParcels = size(parcelAveraged{iChrom}, 1);
+    parcelBlockAveraged = zeros(numParcels, numBlocks, (paramsFile.dtPre+paramsFile.dtAfter+1));
+
+    for iParc = 1:numParcels
+        for iBlock = 1:numBlocks
+            parcelBlockAveraged(iParc, iBlock, :) = parcelData(iParc, allPulses(iBlock)-paramsFile.dtPre:allPulses(iBlock)+paramsFile.dtAfter);
+        end
+    end
+    for iParcel = 1:numParcels, figure; plot(squeeze(mean(parcelBlockAveraged(iParcel, :, :), 2))), end
+end
 
 %% Load support files
 % Load mesh
