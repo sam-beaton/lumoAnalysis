@@ -10,12 +10,15 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 params.timepoint = '12'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
+%storage drive - easier than changing all names all the time
+driveName = '/Users/sambe/';
+
 %overarching directory containing .nirs files
-params.parentDir = '/Users/sambe/dot'; 
+params.parentDir = fullfile(driveName, 'dot'); 
 %processing method (%suffix after 'preproc-' in derivatives folder)
 params.preProcDir = 'standard'; 
 % directory for (statistical) outputs
-outputDir=strcat('/Users/sambe/imageRecon/neurodot/workbench/'); %Output Directory for files
+outputDir=fullfile(driveName, 'imageRecon/neurodot/workbench/'); %Output Directory for files
 %cap info for each participant, in .csv format
 capCSV = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/cappingData.csv'; 
 
@@ -28,7 +31,7 @@ params.parcPercentMin = 0.5; % min. voxel coverage %age of parcels required, as 
 capNames = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/capNames.csv'; % DOESN'T CHANGE
 % directory with Jacobians (A matrices) and PADs fitted to age-specific
 % head models
-jacobianDir=strcat('/Users/sambe/imageRecon/neurodot/Jacobians/');
+jacobianDir=fullfile(driveName, 'imageRecon/neurodot/Jacobians/');
 % maximum channel distance to analyse
 params.maxChannelDistance = 45; % Frijia et al (2021)
 % Block averaging
@@ -45,7 +48,7 @@ params.Cmap.P = colorcube; %use custom colormap
 
 % ---------- Derivative parameters -------------
 % mesh directory dependant on age only
-meshDir = strcat('/Users/sambe/Data/imageRecon/neurodot/Meshes/', params.timepoint, 'mo/'); % ############# needed? #############
+meshDir = fullfile(driveName, 'imageRecon/neurodot/Meshes/'); % ############# needed? #############
 %data location task and age dependant
 params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', params.preProcDir));
 
@@ -53,14 +56,14 @@ params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', pa
 % Age-specific head segmentation
 if ~exist('seg', 'var')
     [maskSeg,infoSeg]=LoadVolumetricData([strcat(params.timepoint,'_0Months3T_head_segVol')], ...
-        strcat('/Users/sambe/imageRecon/neurodot/Segmentations/', params.timepoint,'mo'), ...
+        fullfile(driveName, strcat('imageRecon/neurodot/Segmentations/', params.timepoint,'mo')), ...
         'nii');
 end
 
 % Age-specific cortical parcellation
 if ~exist('parc', 'var')
     [maskParc,infoParc]=LoadVolumetricData([strcat(params.timepoint,'mo_Parc_Reg_Head')], ...
-        strcat('/Users/sambe/mri/registered/UNC_to_NeuroDev/No Mask/', params.timepoint, 'mo'), ...
+        fullfile(driveName, strcat('mri/registered/UNC_to_NeuroDev/No Mask/', params.timepoint, 'mo')), ...
         'nii.gz');
 end
 
@@ -75,18 +78,14 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     
     % ------ load/get .nirs data in ndot file form -------
     data = analysisTools.getNdotFile(matchingFiles{nsub});
-    %nirs = load(matchingFiles{nsub}, '-mat');
-    %data = analysisTools.getNdotFile('/Users/sambe/dot/nirs/sub-053b/ses-12/nirs/sub-053b_ses-12_task-hand_run-02.nirs');
 
     % -------- Get data-dependent values and parameters ---------
     %for viewing preprocessed data & image recon/spectroscopy
-    %data.d = lowpass(data.d, 0.2, data.info.system.framerate); %use lower lowpass cutoff?
     lmdata = logmean(data.d); 
     % measurements to include when plotting
     paramsFile.keep = data.info.pairs.r3d < paramsFile.maxChannelDistance & data.info.MEAS.GI; 
     % Get cap name 
     paramsFile.capName = analysisTools.getInfantCap(capCSV, capNames, params.timepoint, matchingFiles{nsub});
-
 
     % TEST TEST TEST TEST TEST TEST
     %detrend:
@@ -135,10 +134,10 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     fprintf('Creating derivative chromophore matrices\n') 
     % Variables below needed? can just pass them as written.
-    cortexHbO = cortexHb(:, :, 1);
-    cortexHbR = cortexHb(:, :, 2);
-    cortexHbT = cortexHbO + cortexHbR; %total
-    cortexHbD = cortexHbO - cortexHbR; %difference
+    %cortexHbO = cortexHb(:, :, 1);
+    %cortexHbR = cortexHb(:, :, 2);
+    %cortexHbT = cortexHbO + cortexHbR; %total
+    %cortexHbD = cortexHbO - cortexHbR; %difference
 
     % ------- Convert segmentaiton and parcellation to DOT volume space -------
     % convert segmentation 
@@ -160,23 +159,54 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     %PlotSlices(t1, jacob.info.tissue.dim, paramsFile, parcelsSens.lambda1)
     %PlotSlices(t1, jacob.info.tissue.dim, paramsFile, parcelsSens.lambda2)
 
-    % -------- Take parcel average of chromophore
+    % ------- Convert HbO and HbR data to DOT volume space --------
+    regCortexHb = cell(2,1);
+    regCortexHb{1} = Good_Vox2vol(cortexHb(:, :, 1), jacob.info.tissue.dim); %HbO
+    regCortexHb{2} = Good_Vox2vol(cortexHb(:, :, 2), jacob.info.tissue.dim); %HbR
+
+    % -------- Take parcel average of chromophore data -----------
+    parcelAveraged = cell(2,1);
     for iLambda = 1:numel(fieldnames(parcelsSens))
-        parcelNumbers = unique(parcelsSens.(['lambda' num2str(iLambda)]));
-        size(parcelNumbers, 1)
+        lambdaField = ['lambda' num2str(iLambda)];
+        parcelAveraged{iLambda} = analysisTools.getParcelAverageFull(parcelsSens.(lambdaField), regCortexHb{iLambda});
     end
+
+    % ---------- Obtain block data for each parcel ----------
+    % get pulse indices
+    allPulses = [];
+    % loop through Pulse_2 to Pulse_6 (Pulse_1 is baseline)
+    for i = 2:6
+        fieldName = sprintf('Pulse_%d', i);
+        
+        % if the field exists
+        if isfield(data.info.paradigmFull, fieldName)
+            thisPulse = data.info.paradigmFull.(fieldName); %give temp name          
+            allPulses = [allPulses; thisPulse(:)]; % add to existing
+        end
+    end
+    % get sample point where pulse/stim marker occurs
+    allPulses = data.info.paradigmFull.synchpts(allPulses);
     
+    % store block data
+    % get number of pulses
+    numBlocks = length(allPulses);
     
+    for iLambda = 1:numel(fieldnames(parcelsSens))
+
+        for i = 1:length
+
 
     %clearvars -except myImportantVar1 myImportantVar2 myImportantVar3
     %close all;
 end
 
+%% TESTING
+
+
 
 %% Load support files
 % Load mesh
 
-affine3d_img
 
 
 %% stat testing
