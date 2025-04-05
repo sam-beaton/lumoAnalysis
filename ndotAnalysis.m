@@ -27,8 +27,14 @@ capNames = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Docu
 jacobianDir=strcat('/Users/sambe/imageRecon/neurodot/Jacobians/');
 % maximum channel distance to analyse
 params.maxChannelDistance = 45; % Frijia et al (2021)
-params.dtPre = 40; % block average start
-params.dtAfter = 180; % block average finish
+% Block averaging
+params.dtPre = 40; % start
+params.dtAfter = 180; % finish
+% Plotslices
+params.PD=1;
+params.Scale=1;
+params.Th.P=5e-2;
+params.Th.N=-params.Th.P;
 
 % ---------- Derivative parameters -------------
 % mesh directory dependant on age only
@@ -46,8 +52,8 @@ end
 
 % Age-specific cortical parcellation
 if ~exist('parc', 'var')
-    [maskParc,infoParc]=LoadVolumetricData([strcat(timePoint,'mo_Parc_Reg_Head')], ...
-        strcat('/Users/sambe/mri/registered/UNC_to_NeuroDev/No Mask/', timePoint, 'mo'), ...
+    [maskParc,infoParc]=LoadVolumetricData([strcat(params.timepoint,'mo_Parc_Reg_Head')], ...
+        strcat('/Users/sambe/mri/registered/UNC_to_NeuroDev/No Mask/', params.timepoint, 'mo'), ...
         'nii.gz');
 end
 
@@ -100,11 +106,12 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     % Reshape if necessary
     jacob = analysisTools.reshapeJacob(jacob);
 
-    % Remove all values from excluded blocks in tKeep
+    % Remove all values from excluded blocks in the reconstruction data
     tKeep = analysisTools.scrubKeepBlocks(tKeep, paramsFile);
+    lmdata = lmdata.*tKeep;
 
     % Perform image reconstruction
-    cortexMuA = analysisTools.imageReconstruction(lmdata, jacob, data.info, paramsFile, tKeep);
+    [cortexMuA, iJacob] = analysisTools.imageReconstruction(lmdata, jacob, data.info, paramsFile);
 
     % ------- Spectroscopy --------
     % Generate extinction coeffts (E) if not already in workspace
@@ -114,12 +121,13 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         % Rows: (1) lower lambda, (2) higher lambda. Cols: (1) HbO, (2) HbR
         E = Generate_Spectroscopy_Matrix([data.info.pairs.lambda(1), data.info.pairs.lambda(end)], spectra, ExtCoeffs.Prahl);
     end
-
-    fprintf('Performing Spectroscopy\n', j) 
+    
+    % Perform spectroscopy
+    fprintf('Performing Spectroscopy\n') 
     cortexHb = spectroscopy_img(cortexMuA, E);
 
-    fprintf('Creating derivative chromophore matrices\n', j) 
-    % variables below needed? can just pass them as written.
+    fprintf('Creating derivative chromophore matrices\n') 
+    % Variables below needed? can just pass them as written.
     cortexHbO = cortexHb(:, :, 1);
     cortexHbR = cortexHb(:, :, 2);
     cortexHbT = cortexHbO + cortexHbR; %total
@@ -130,14 +138,12 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     t1 = affine3d_img(seg.mask, seg.info, jacob.info.tissue.dim, eye(4));
     % convert parcellation
     regMaskParc=affine3d_img(maskParc,infoSeg,dim,eye(4)); 
+    
+    % ------- Find extent of array coverage for each wavelength -------
+    %restrict Jacobian to 
+    
 
-
-    ffr=makeFlatFieldRecon(a,iA);
-
-    fooV=Good_Vox2vol(ffr,dim);
-    fooV=fooV./max(fooV(:));
-    pA.PD=1;pA.Scale=1;pA.Th.P=5e-2;pA.Th.N=-pA.Th.P;
-    PlotSlices(t1,dim,pA,fooV)
+    PlotSlices(t1,dim,params,fooV)
 
     %clearvars -except myImportantVar1 myImportantVar2 myImportantVar3
     %close all;
@@ -146,8 +152,6 @@ end
 
 %% Load support files
 % Load mesh
-% Load parcellation 
-% Load A-matrix
 
 %% stat testing
 % close all;

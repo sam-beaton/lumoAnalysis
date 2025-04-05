@@ -1,4 +1,4 @@
-function [cortexMuA, iJacob]  = imageReconstruction(data, jacobian, info, params)
+function cortexMuA,  = imageReconstruction(data, jacobian, info, params, tKeep)
 
 % Performs image reconstruction, using 'reconstruct_img' from NeuroDOT
 % toolbox
@@ -19,9 +19,9 @@ function [cortexMuA, iJacob]  = imageReconstruction(data, jacobian, info, params
         fprintf('Reconstructing Volume: wavelength %g\n', j) 
         cortexMuA(:, :, j) = reconstruct_img(data(keep, :), iJacob); % Reconstruct Image Volume
         if j == 1
-            iJacob.lambda1 = iJacob;
+            iJacob1 = iJacob;
         else
-            iJacob.lambda2 = iJacob;
+            iJacob2 = iJacob;
         end
     end
 
