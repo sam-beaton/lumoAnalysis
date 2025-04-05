@@ -135,15 +135,16 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     % ------- Convert segmentaiton and parcellation to DOT volume space -------
     % convert segmentation 
-    t1 = affine3d_img(seg.mask, seg.info, jacob.info.tissue.dim, eye(4));
+    t1 = affine3d_img(maskSeg, infoSeg, jacob.info.tissue.dim, eye(4));
     % convert parcellation
-    regMaskParc=affine3d_img(maskParc,infoSeg,dim,eye(4)); 
+    regMaskParc=affine3d_img(maskParc, infoParc, jacob.info.tissue.dim, eye(4)); 
     
     % ------- Find extent of array coverage for each wavelength -------
-    %restrict Jacobian to 
-    
-
-    PlotSlices(t1,dim,params,fooV)
+    % Calculate light coverage
+    fooV = analysisTools.getLightCoverage(jacob.A, iJacob, jacob.info, data.info, paramsFile);
+    % Plotting:
+    PlotSlices(t1, jacob.info.tissue.dim, params, fooV.lambda1) % HbO
+    PlotSlices(t1, jacob.info.tissue.dim, params, fooV.lambda2) % HbR
 
     %clearvars -except myImportantVar1 myImportantVar2 myImportantVar3
     %close all;
@@ -152,6 +153,18 @@ end
 
 %% Load support files
 % Load mesh
+
+
+keep=(jacob.info.pairs.WL==1 & jacob.info.pairs.r3d<=45 & data.info.MEAS.GI);
+a=squeeze(jacob.A(keep,:));
+iA=Tikhonov_invert_Amat(a,0.01,0.1);
+iA=smooth_Amat(iA,jacob.info.tissue.dim,5); %5 = smoothing parameter
+ffr=makeFlatFieldRecon(a,iA);
+
+fooV=Good_Vox2vol(ffr,jacob.info.tissue.dim);
+fooV=fooV./max(fooV(:));
+pA.PD=1;pA.Scale=1;pA.Th.P=5e-2;pA.Th.N=-pA.Th.P;
+PlotSlices(t1,jacob.info.tissue.dim,pA,fooV)
 
 %% stat testing
 % close all;

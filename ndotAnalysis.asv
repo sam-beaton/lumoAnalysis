@@ -111,7 +111,7 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     lmdata = lmdata.*tKeep;
 
     % Perform image reconstruction
-    cortexMuA = analysisTools.imageReconstruction(lmdata, jacob, data.info, paramsFile);
+    [cortexMuA, iJacob] = analysisTools.imageReconstruction(lmdata, jacob, data.info, paramsFile);
 
     % ------- Spectroscopy --------
     % Generate extinction coeffts (E) if not already in workspace
@@ -123,10 +123,10 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     end
     
     % Perform spectroscopy
-    fprintf('Performing Spectroscopy\n', j) 
+    fprintf('Performing Spectroscopy\n') 
     cortexHb = spectroscopy_img(cortexMuA, E);
 
-    fprintf('Creating derivative chromophore matrices\n', j) 
+    fprintf('Creating derivative chromophore matrices\n') 
     % Variables below needed? can just pass them as written.
     cortexHbO = cortexHb(:, :, 1);
     cortexHbR = cortexHb(:, :, 2);
@@ -140,32 +140,11 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     regMaskParc=affine3d_img(maskParc,infoSeg,dim,eye(4)); 
     
     % ------- Find extent of array coverage for each wavelength -------
-    %restrict Jacobian to 
-        nLambda = length(unique(info.pairs.lambda)); %number of wavelengths
-    % initialise absorption matrix i.e. inversion of A, twice (once for each WL)
-    cortexMuA = zeros(nVox, nT, nLambda);
-
-    % invert A
-    for j = 1:nLambda
-        keep = (info.pairs.WL == j) & (info.pairs.r3d <= params.maxChannelDistance) & info.MEAS.GI; 
-        fprintf('Inverting Jacobian: wavelength %g\n', j)             
-        iJacob = Tikhonov_invert_Amat(jacobian.A(keep, :), 0.01, 0.1); % Invert A-Matrix
-        fprintf('Smoothing Inverse: wavelength %g\n', j)   
-        iJacob = analysisTools.adaptedSmoothAmat(iJacob, jacobian.info.tissue.dim, 3); % Smooth Inverted A-Matrix
-        fprintf('Reconstructing Volume: wavelength %g\n', j) 
-        cortexMuA(:, :, j) = reconstruct_img(data(keep, :), iJacob); % Reconstruct Image Volume
-        if j == 1
-            iJacob1 = iJacob;
-        else
-            iJacob2 = iJacob;
-        end
-    end
-    aWav = jacob.A(keep);
-    ffr=makeFlatFieldRecon(a,iA);
-    fooV=Good_Vox2vol(ffr,dim);
-    fooV=fooV./max(fooV(:));
-
-    PlotSlices(t1,dim,params,fooV)
+    % Calculate light coverage
+    fooV = analysisTools.getLightCoverage(jacob.A, iJacob, jacob.info, data.info, paramsFile);
+    % Plotting:
+    PlotSlices(t1,dim,params,fooV.lambda1) % HbO
+    PlotSlices(t1,dim,params,fooV.lambda2) % HbR
 
     %clearvars -except myImportantVar1 myImportantVar2 myImportantVar3
     %close all;
@@ -174,8 +153,6 @@ end
 
 %% Load support files
 % Load mesh
-% Load parcellation 
-% Load A-matrix
 
 %% stat testing
 % close all;

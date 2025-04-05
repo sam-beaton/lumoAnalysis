@@ -1,5 +1,6 @@
-function [cortexMuA, iJacob]  = imageReconstruction(data, jacobian, info, params)
+function [cortexMuA, iJacobOut]  = imageReconstruction(data, jacobian, info, params)
 
+% lmdata, jacob, data.info, paramsFile
 % Performs image reconstruction, using 'reconstruct_img' from NeuroDOT
 % toolbox
 
@@ -11,17 +12,17 @@ function [cortexMuA, iJacob]  = imageReconstruction(data, jacobian, info, params
 
     % invert A
     for j = 1:nLambda
-        keep = (info.pairs.WL == j) & (info.pairs.r3d <= params.maxChannelDistance) & info.MEAS.GI; 
+        keep = (jacobian.info.pairs.WL == j) & (jacobian.info.pairs.r3d <= params.maxChannelDistance) & info.MEAS.GI; 
         fprintf('Inverting Jacobian: wavelength %g\n', j)             
         iJacob = Tikhonov_invert_Amat(jacobian.A(keep, :), 0.01, 0.1); % Invert A-Matrix
         fprintf('Smoothing Inverse: wavelength %g\n', j)   
-        iJacob = analysisTools.adaptedSmoothAmat(iJacob, jacobian.info.tissue.dim, 3); % Smooth Inverted A-Matrix
+        iJacob = analysisTools.adaptedSmoothAmat(iJacob, jacobian.info.tissue.dim, 5); % Smooth Inverted A-Matrix
         fprintf('Reconstructing Volume: wavelength %g\n', j) 
         cortexMuA(:, :, j) = reconstruct_img(data(keep, :), iJacob); % Reconstruct Image Volume
         if j == 1
-            iJacob.lambda1 = iJacob;
+            iJacobOut.lambda1 = iJacob;
         else
-            iJacob.lambda2 = iJacob;
+            iJacobOut.lambda2 = iJacob;
         end
     end
 
