@@ -19,6 +19,10 @@ outputDir=strcat('/Users/sambe/imageRecon/neurodot/workbench/'); %Output Directo
 %cap info for each participant, in .csv format
 capCSV = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/cappingData.csv'; 
 
+%Light and parcel sensitivity thresholds for overlap
+params.lightSensitivityMin = 0.05; %light
+params.parcPercentMin = 0.5; % min. voxel coverage %age of parcels required, as a decimal
+
 % ---------- Constant parameters -------------
 % cap names corresponding to info in capCSV file
 capNames = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/capNames.csv'; % DOESN'T CHANGE
@@ -35,6 +39,9 @@ params.PD=1;
 params.Scale=1;
 params.Th.P=5e-2;
 params.Th.N=-params.Th.P;
+params.TC = 1; %use true color mapping
+params.cbmode = 0; %use custom colorbar limits
+params.Cmap.P = colorcube; %use custom colormap
 
 % ---------- Derivative parameters -------------
 % mesh directory dependant on age only
@@ -143,8 +150,23 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     % Calculate light coverage
     fooV = analysisTools.getLightCoverage(jacob.A, iJacob, jacob.info, data.info, paramsFile);
     % Plotting:
-    PlotSlices(t1, jacob.info.tissue.dim, params, fooV.lambda1) % HbO
-    PlotSlices(t1, jacob.info.tissue.dim, params, fooV.lambda2) % HbR
+    %PlotSlices(t1, jacob.info.tissue.dim, params, fooV.lambda1) % HbO
+    %PlotSlices(t1, jacob.info.tissue.dim, params, fooV.lambda2) % HbR
+
+    % ------- Find intersection of array coverage and parcellation --------
+    parcelsSens = analysisTools.getParcelSensitivity(regMaskParc, fooV, params.lightSensitivityMin, params.parcPercentMin);
+    
+    % Plotting:
+    %PlotSlices(t1, jacob.info.tissue.dim, paramsFile, parcelsSens.lambda1)
+    %PlotSlices(t1, jacob.info.tissue.dim, paramsFile, parcelsSens.lambda2)
+
+    % -------- Take parcel average of chromophore
+    for iLambda = 1:numel(fieldnames(parcelsSens))
+        parcelNumbers = unique(parcelsSens.(['lambda' num2str(iLambda)]));
+        size(parcelNumbers, 1)
+    end
+    
+    
 
     %clearvars -except myImportantVar1 myImportantVar2 myImportantVar3
     %close all;
@@ -154,17 +176,8 @@ end
 %% Load support files
 % Load mesh
 
+affine3d_img
 
-keep=(jacob.info.pairs.WL==1 & jacob.info.pairs.r3d<=45 & data.info.MEAS.GI);
-a=squeeze(jacob.A(keep,:));
-iA=Tikhonov_invert_Amat(a,0.01,0.1);
-iA=smooth_Amat(iA,jacob.info.tissue.dim,5); %5 = smoothing parameter
-ffr=makeFlatFieldRecon(a,iA);
-
-fooV=Good_Vox2vol(ffr,jacob.info.tissue.dim);
-fooV=fooV./max(fooV(:));
-pA.PD=1;pA.Scale=1;pA.Th.P=5e-2;pA.Th.N=-pA.Th.P;
-PlotSlices(t1,jacob.info.tissue.dim,pA,fooV)
 
 %% stat testing
 % close all;
@@ -184,13 +197,6 @@ PlotSlices(t1,jacob.info.tissue.dim,pA,fooV)
 %     plot(badataKeep(iChan, :));
 % end
 
-%% Select Volumetric visualizations of block averaged data
-if ~exist('seg', 'var')
-    [seg.mask, seg.info]=LoadVolumetricData([strcat(params.timepoint,'_0Months3T_head_segVol')], ...
-        strcat('/Users/sambe/imageRecon/neurodot/Segmentations/', params.timepoint,'mo'), ...
-        'nii'); % load MRI (same data set as in A matrix dim)
-end
-t1 = affine3d_img(seg.mask, seg.info, jacob.info.tissue.dim, eye(4)); % transform to DOT volume space 
 
 %% Explore the block-averaged data interactively (HbO)
 badataHbO = BlockAverage(cortexHbO, data.info.paradigmFull.synchpts(data.info.paradigmFull.Pulse_2), params.dtAfter); %block averaging of HbO data
