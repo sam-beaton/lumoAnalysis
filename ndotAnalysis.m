@@ -32,9 +32,24 @@ params.dtAfter = 180; % block average finish
 
 % ---------- Derivative parameters -------------
 % mesh directory dependant on age only
-meshDir = strcat('/Users/sambe/Data/imageRecon/neurodot/Meshes/', params.timepoint, 'mo/'); %folder containing meshes
+meshDir = strcat('/Users/sambe/Data/imageRecon/neurodot/Meshes/', params.timepoint, 'mo/'); % ############# needed? #############
 %data location task and age dependant
 params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', params.preProcDir));
+
+% ---------- Load files needed for all iterations of the loop ----------
+% Age-specific head segmentation
+if ~exist('seg', 'var')
+    [maskSeg,infoSeg]=LoadVolumetricData([strcat(params.timepoint,'_0Months3T_head_segVol')], ...
+        strcat('/Users/sambe/imageRecon/neurodot/Segmentations/', params.timepoint,'mo'), ...
+        'nii');
+end
+
+% Age-specific cortical parcellation
+if ~exist('parc', 'var')
+    [maskParc,infoParc]=LoadVolumetricData([strcat(timePoint,'mo_Parc_Reg_Head')], ...
+        strcat('/Users/sambe/mri/registered/UNC_to_NeuroDev/No Mask/', timePoint, 'mo'), ...
+        'nii.gz');
+end
 
 %% Search for task files 
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
@@ -46,88 +61,86 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     paramsFile = params;
     
     % ------ load/get .nirs data in ndot file form -------
-    [data, info] = analysisTools.getNdotFile(matchingFiles{nsub});
+    data = analysisTools.getNdotFile(matchingFiles{nsub});
     %nirs = load(matchingFiles{nsub}, '-mat');
-    %[data, info] = analysisTools.getNdotFile('/Users/sambe/dot/nirs/sub-053b/ses-12/nirs/sub-053b_ses-12_task-hand_run-02.nirs');
+    %data = analysisTools.getNdotFile('/Users/sambe/dot/nirs/sub-053b/ses-12/nirs/sub-053b_ses-12_task-hand_run-02.nirs');
 
     % -------- Get data-dependent values and parameters ---------
-    %for viewing preprocessed data
+    %for viewing preprocessed data & image recon/spectroscopy
+    %data.d = lowpass(data.d, 0.2, data.info.system.framerate); %use lower lowpass cutoff?
     lmdata = logmean(data.d); 
     % measurements to include when plotting
-    paramsFile.keep = info.pairs.r3d < paramsFile.maxChannelDistance & info.MEAS.GI; 
+    paramsFile.keep = data.info.pairs.r3d < paramsFile.maxChannelDistance & data.info.MEAS.GI; 
     % Get cap name 
     paramsFile.capName = analysisTools.getInfantCap(capCSV, capNames, params.timepoint, matchingFiles{nsub});
 
 
     % TEST TEST TEST TEST TEST TEST
-    %use lower lowpass cutoff
-    %data.d = lowpass(data.d, 0.2, info.system.framerate);
     %detrend:
     %lmdata = detrend_tts(lmdata);
     %resample
-    %[data.dcResampled, info] = analysisTools.adaptedResample_tts(data.dc, info, 1, 1e-5); % 1 Hz Resampling (1 Hz)
+    %[data.dcResampled, data.info] = analysisTools.adaptedResample_tts(data.dc, data.info, 1, 1e-5); % 1 Hz Resampling (1 Hz)
     
     % -------- View processed data -----------
-    %analysisTools.viewProcessedData(lmdata, info, paramsFile);
+    %analysisTools.viewProcessedData(lmdata, data.info, paramsFile);
 
     % ------- Calculate block averaged data ----------
-    badata = analysisTools.adaptedBlockAverage(data.dc, params, info);
+    [badata, ~, ~, ~, tKeep] = analysisTools.adaptedBlockAverage(data.dc, params, data.info);
 
     % ------- View block averaged data ---------
-    analysisTools.viewBlockAveraged(badata, paramsFile);
+    %analysisTools.viewBlockAveraged(badata, paramsFile);
     
-    % ------- Image reconstruction: Load Jacobian and invert for mu_a ------
-    % get A matrix name
+    % ------- Image reconstruction: Load Jacobian and invert for MuA ------
+    % construct Jacobian filename, load, and reshape (if needed)
     jacobFName = strcat('A_', paramsFile.capName, '_on_HD_Mesh_', paramsFile.timepoint, 'mo.mat');
-
     % load A matrix
     if ~exist ('jacob', 'var')
         jacob=load(fullfile(jacobianDir, jacobFName),'info','A'); %load info and the matrix itself from the Jacobian
     end
+    % Reshape if necessary
+    jacob = analysisTools.reshapeJacob(jacob);
 
-    %reshape if necessary
-    if length(size(jacob.A))>2  
-        [nWL, nMeas, nVox]=size(jacob.A);
-        jacob.A=reshape(permute(jacob.A,[2,1,3]),Nwl*nMeas,nVox);
-    end
+    % Remove all values from excluded blocks in tKeep
+    tKeep = analysisTools.scrubKeepBlocks(tKeep, paramsFile);
 
-    nVox=size(jacob.A,2); %number of voxels in voxellated sensitivity map
-    nT = size(data.dc,2); %number of time points in (resampled) recording
-    nLambda = length(unique(info.pairs.lambda)); %number of wavelengths
-    % initialise absorption matrix i.e. inversion of A, twice (once for each WL)
-    cortexMuA = zeros(nVox, nT, nLambda); 
-
-    % invert A
-    for j = 1:nLambda
-        keep = (info.pairs.WL == j) & (info.pairs.r3d <= params.maxChannelDistance) & info.MEAS.GI; 
-        fprintf('Inverting Jacobian: wavelength %g\n', j)             
-        iJacob = Tikhonov_invert_Amat(jacob.A(keep, :), 0.01, 0.1); % Invert A-Matrix
-        fprintf('Smoothing Inverse: wavelength %g\n', j)   
-        iJacob = analysisTools.adaptedSmoothAmat(iJacob, jacob.info.tissue.dim, 3); % Smooth Inverted A-Matrix
-        fprintf('Reconstructing Volume: wavelength %g\n', j) 
-        cortexMuA(:, :, j) = reconstruct_img(data.dc(keep, :), iJacob); % Reconstruct Image Volume
-    end
+    % Perform image reconstruction
+    cortexMuA = analysisTools.imageReconstruction(lmdata, jacob, data.info, paramsFile, tKeep);
 
     % ------- Spectroscopy --------
-    % Generate extinction coeffts if not already in workspace
+    % Generate extinction coeffts (E) if not already in workspace
     if ~exist('E', 'var')
-        %load('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT/Support_Files/A_Matrices/E.mat')
-        %exs = GetExtinctions([nirs.SD.Lambda]);
         load('Extinction_Coefficients.mat'); % loads ext. coeffts, including Prahl's
         spectra{1}=1;spectra{2}=1; % placeholders
-        %Generate matrix of ext. coeffts.
         % Rows: (1) lower lambda, (2) higher lambda. Cols: (1) HbO, (2) HbR
-        E = Generate_Spectroscopy_Matrix([info.pairs.lambda(1), info.pairs.lambda(end)], spectra, ExtCoeffs.Prahl);
+        E = Generate_Spectroscopy_Matrix([data.info.pairs.lambda(1), data.info.pairs.lambda(end)], spectra, ExtCoeffs.Prahl);
     end
+
+    fprintf('Performing Spectroscopy\n', j) 
     cortexHb = spectroscopy_img(cortexMuA, E);
+
+    fprintf('Creating derivative chromophore matrices\n', j) 
+    % variables below needed? can just pass them as written.
     cortexHbO = cortexHb(:, :, 1);
     cortexHbR = cortexHb(:, :, 2);
     cortexHbT = cortexHbO + cortexHbR; %total
     cortexHbD = cortexHbO - cortexHbR; %difference
 
-    % get parcellation name
+    % ------- Convert segmentaiton and parcellation to DOT volume space -------
+    % convert segmentation 
+    t1 = affine3d_img(seg.mask, seg.info, jacob.info.tissue.dim, eye(4));
+    % convert parcellation
+    regMaskParc=affine3d_img(maskParc,infoSeg,dim,eye(4)); 
 
-    %clear jacob
+
+    ffr=makeFlatFieldRecon(a,iA);
+
+    fooV=Good_Vox2vol(ffr,dim);
+    fooV=fooV./max(fooV(:));
+    pA.PD=1;pA.Scale=1;pA.Th.P=5e-2;pA.Th.N=-pA.Th.P;
+    PlotSlices(t1,dim,pA,fooV)
+
+    %clearvars -except myImportantVar1 myImportantVar2 myImportantVar3
+    %close all;
 end
 
 
@@ -155,34 +168,45 @@ end
 % end
 
 %% Select Volumetric visualizations of block averaged data
-if ~exist('MNI', 'var')
-    [maskSeg,infoSeg]=LoadVolumetricData([strcat(params.timepoint,'_0Months3T_head_segVol')], ...
+if ~exist('seg', 'var')
+    [seg.mask, seg.info]=LoadVolumetricData([strcat(params.timepoint,'_0Months3T_head_segVol')], ...
         strcat('/Users/sambe/imageRecon/neurodot/Segmentations/', params.timepoint,'mo'), ...
         'nii'); % load MRI (same data set as in A matrix dim)
 end
-t1 = affine3d_img(maskSeg, infoSeg, jacob.info.tissue.dim, eye(4)); % transform to DOT volume space 
+t1 = affine3d_img(seg.mask, seg.info, jacob.info.tissue.dim, eye(4)); % transform to DOT volume space 
 
-%% Explore the block-averaged data interactively
-badata_HbO = BlockAverage(cortexHbO, info.paradigmFull.synchpts(info.paradigmFull.Pulse_2), params.dtAfter); %block averaging of HbO data
-badata_HbO=bsxfun(@minus,badata_HbO,badata_HbO(:,1)); %centres the data by subtrating the value at the first timepoint in each voxel
-badata_HbOvol = Good_Vox2vol(badata_HbO,jacob.info.tissue.dim); %transforms B.A. data into a 4D volume
+%% Explore the block-averaged data interactively (HbO)
+badataHbO = BlockAverage(cortexHbO, data.info.paradigmFull.synchpts(data.info.paradigmFull.Pulse_2), params.dtAfter); %block averaging of HbO data
+badataHbO=bsxfun(@minus,badataHbO,badataHbO(:,1)); %centres the data by subtrating the value at the first timepoint in each voxel
+badataHbOvol = Good_Vox2vol(badataHbO,jacob.info.tissue.dim); %transforms B.A. data into a 4D volume
 
-Params.Scale=0.8*max(abs(badata_HbOvol(:))); % used to scale colormapping
+Params.Scale=0.8*max(abs(badataHbOvol(:))); % used to scale colormapping
 Params.Th.P=0.2*Params.Scale; % used to scale colormapping
 Params.Th.N=-Params.Th.P; % used to scale colormapping
 Params.Cmap='jet';
-PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,Params,badata_HbOvol,info) %plot data in 4D (x,y,z,time)
+PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,Params,badataHbOvol,data.info) %plot data in 4D (x,y,z,time)
+
+%% Explore the block-averaged data interactively (HbD)
+badataHbD = BlockAverage(cortexHbD, data.info.paradigmFull.synchpts(data.info.paradigmFull.Pulse_2), params.dtAfter); %block averaging of HbD data
+badataHbD=bsxfun(@minus,badataHbD,badataHbD(:,1)); %centres the data by subtrating the value at the first timepoint in each voxel
+badataHbDvol = Good_Vox2vol(badataHbD,jacob.info.tissue.dim); %transforms B.A. data into a 4D volume
+
+Params.Scale=0.8*max(abs(badataHbDvol(:))); % used to scale colormapping
+Params.Th.P=0.2*Params.Scale; % used to scale colormapping
+Params.Th.N=-Params.Th.P; % used to scale colormapping
+Params.Cmap='jet';
+PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,Params,badataHbDvol,data.info) %plot data in 4D (x,y,z,time)
 
 %% Explore whole TS HbO data interactively
 data_HbOvol = Good_Vox2vol(cortexHbO,jacob.info.tissue.dim); %transforms entire data TS into a 4D volume
 ParamsWhole = Params; %duplicate params from B.A.
 ParamsWhole.Scale=0.8*max(abs(data_HbOvol(:))); %alter scale
-PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,ParamsWhole,data_HbOvol,info) %plot entire data TS in 4D (x,y,z,time)
+PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,ParamsWhole,data_HbOvol,data.info) %plot entire data TS in 4D (x,y,z,time)
 
 %% Visualize block-averaged absorption data 
 % Use the next line to select mu_a (wavelength of 1 or 2 in the third
 % dimension)
-badata_MuA = BlockAverage(cortexMuA(:,:,1), info.paradigm.synchpts(info.paradigm.Pulse_2), dt); %block averaging of absorption data
+badata_MuA = BlockAverage(cortexMuA(:,:,1), data.info.paradigm.synchpts(data.info.paradigm.Pulse_2), dt); %block averaging of absorption data
 badata_MuA=bsxfun(@minus,badata_MuA,badata_MuA(:,1)); %centre the data
 badata_MuAvol = Good_Vox2vol(badata_MuA,jacob.info.tissue.dim); %transforms B.A. data into a 4D volume
 
@@ -193,17 +217,17 @@ ParamsMuA.Th.N=-ParamsMuA.Th.P;
 ParamsMuA.Cmap='jet';
 
 %Plot absorption data
-PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,Params,badata_MuAvol,info)
+PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,Params,badata_MuAvol,data.info)
 
 %% Visualize block-averaged HbO, HbR, or HbT data 
 % use next line to change to HbO, HbR, or HbT (first input argument
-badata_Hb = BlockAverage(cortexHbT, info.paradigm.synchpts(info.paradigm.Pulse_2), dt); %B.A. of haemoglobin data 
-badata_Hb=bsxfun(@minus,badata_HbO,badata_Hb(:,1)); %centre data
+badata_Hb = BlockAverage(cortexHbT, data.info.paradigm.synchpts(data.info.paradigm.Pulse_2), dt); %B.A. of haemoglobin data 
+badata_Hb=bsxfun(@minus,badataHbO,badata_Hb(:,1)); %centre data
 badata_Hbvol = Good_Vox2vol(badata_Hb,jacob.info.tissue.dim); %transforms B.A. data into a 4D volume
 %Params for visualisation
-ParamsHb.Scale=0.8*max(abs(badata_HbOvol(:)));
+ParamsHb.Scale=0.8*max(abs(badataHbOvol(:)));
 ParamsHb.Th.P=0.2*ParamsHb.Scale;
 ParamsHb.Th.N=-ParamsHb.Th.P;
 ParamsHb.Cmap='jet';
 % Plot Hb data
-PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,Params,badata_HbOvol,info)
+PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,Params,badataHbOvol,data.info)

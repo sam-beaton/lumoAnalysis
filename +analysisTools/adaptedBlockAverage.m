@@ -1,4 +1,4 @@
-function [BA_out,BSTD_out,BT_out,blocks] = adaptedBlockAverage(data_in, params, info, Tkeep)
+function [BA_out, BSTD_out, BT_out, blocks, Tkeep] = adaptedBlockAverage(data_in, params, info)
 
 % BLOCKAVERAGE Averages data by stimulus blocks.
 %

@@ -96,7 +96,6 @@ seg_mask(seg_mask == 1) = 4;
 % replace voxels in head mask with voxels from brain mask
 seg_mask(mask_bin ~=0) = mask_bin(mask_bin ~=0);
 % PlotSlices(seg_mask, infoHead); %visualize in grayscale
-%q
 
 %% Save segmentation
 
@@ -105,7 +104,7 @@ if ~isfolder(outputDir)
     mkdir(outputDir);
 end
 
-adaptedSaveVolumetricData(seg_mask, infoHead, strcat(timePoint,'_0Months3T_head_segVol'), outputDir, 'nii')
+analysisTools.adaptedSaveVolumetricData(seg_mask, infoHead, strcat(timePoint,'_0Months3T_head_segVol'), outputDir, 'nii')
 [mask,infoMask]=LoadVolumetricData(strcat(timePoint,'_0Months3T_head_segVol'), outputDir, 'nii');
 PlotSlices(mask, infoMask, p)
 

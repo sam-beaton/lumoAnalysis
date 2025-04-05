@@ -1,4 +1,4 @@
-function adaptedSaveVolumetricData(volume, header, filename, pn, file_type)
+function SaveVolumetricData(volume, header, filename, pn, file_type)
 
 % SAVEVOLUMETRICDATA Saves a volumetric data file.
 %

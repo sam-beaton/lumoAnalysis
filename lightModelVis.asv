@@ -27,8 +27,12 @@ cd(outputDir);
 % Load a Segmented Volume - YES
 [maskSeg,infoSeg]=LoadVolumetricData([strcat(timePoint,'_0Months3T_head_segVol')],strcat('/Users/sambe/imageRecon/neurodot/Segmentations/', timePoint,'mo'),'nii');
 
+% Load PAD file - YES
+load([jacobianDir, 'Pad_HD_Mesh_', timePoint, 'mo_', capName, '.mat']); %loads as 'info'
+infoPAD = info; %rename to simplify
+
 % Load A matrix - ALREADY THERE
-jacob = load([jacobianDir,'A_',capName,'_on_HD_Mesh_', timePoint, 'mo.mat'], 'info', 'A');
+load([jacobianDir,'A_',capName,'_on_HD_Mesh_', timePoint, 'mo.mat']);
 
 % Load LD mesh
 %load([meshDir, ldmeshname,'.mat']);
@@ -41,7 +45,7 @@ jacob = load([jacobianDir,'A_',capName,'_on_HD_Mesh_', timePoint, 'mo.mat'], 'in
 
 % Extract 'dim' from PAD info as a separate variable for reg. to same space
 % (not necessary but easier and consistent with conventions in Neurodot scripts)
-dim = jacob.info.tissue.dim;
+dim = info.tissue.dim;
 
 %% Set params for plotting etc
 % PlotSlices params ---------
@@ -92,11 +96,14 @@ close all;
 
 %% Visualize aspects of sensitivity profile
 
+% dim.center(1) = dim.center(1)+2; %shift over by 1 voxel (2mm)
+info.tissue.dim = dim;
+
 t1=affine3d_img(maskSeg,infoSeg,dim,eye(4)); % put anatomical volume in dim space
 
 % Visualize Single SD pair (S1 D1)
-keep=jacob.info.pairs.WL==2 & jacob.info.pairs.Src==1 & jacob.info.pairs.Det==1; % SD pair set here
-foo=squeeze(jacob.A(keep,:));              % Single meas pair
+keep=info.pairs.WL==2 & info.pairs.Src==1 & info.pairs.Det==1; % SD pair set here
+foo=squeeze(A(keep,:));              % Single meas pair
 fooV=Good_Vox2vol(foo',dim);
 fooV=fooV./max(fooV(:));
 fooV=log10(1e2.*fooV);                  % top 2 o.o.m.
@@ -104,8 +111,8 @@ pA.PD=1;pA.Scale=2;pA.Th.P=0;pA.Th.N=-pA.Th.P;
 % PlotSlices(t1,dim,pA,fooV)
 
 % Visualize Single SD pair (S20 D25)
-keep=jacob.info.pairs.WL==2 & jacob.info.pairs.Src==20 & jacob.info.pairs.Det==25; % SD pair set here
-foo=squeeze(jacob.A(keep,:));              % Single meas pair
+keep=info.pairs.WL==2 & info.pairs.Src==20 & info.pairs.Det==25; % SD pair set here
+foo=squeeze(A(keep,:));              % Single meas pair
 fooV=Good_Vox2vol(foo',dim);
 fooV=fooV./max(fooV(:));
 fooV=log10(1e2.*fooV);                  % top 2 o.o.m.
@@ -113,8 +120,8 @@ pA.PD=1;pA.Scale=2;pA.Th.P=0;pA.Th.N=-pA.Th.P;
 % PlotSlices(t1,dim,pA,fooV)
 
 %% Visualise FFR
-keep=(jacob.info.pairs.WL==2 & jacob.info.pairs.r3d<=60);
-a=squeeze(jacob.A(keep,:));
+keep=(info.pairs.WL==2 & info.pairs.r3d<=60);
+a=squeeze(A(keep,:));
 iA=Tikhonov_invert_Amat(a,0.01,0.1);
 iA=smooth_Amat(iA,dim,5); %5 = smoothing parameter
 ffr=makeFlatFieldRecon(a,iA);
@@ -201,6 +208,8 @@ PlotSlices(t1,dim,pA,mask)
 
 
 
+badata_MuAvol = Good_Vox2vol(badata_MuA,A.info.tissue.dim); %transforms B.A. data into a 4D volume
+
 % %%
 % Smesh = vol2surf_mesh(meshParc, maskParc, dim);
 % 
@@ -235,7 +244,7 @@ PlotSlices(t1,dim,pA,mask)
 % PlotMeshSurface(meshHD,pA2)                     % LD mesh
 % set(gca,'Color','k')
 % view([90,0]) % display in Lateral view
-% Draw_Foci_191203(cat(1,jacob.info.optodes.spos3,jacob.info.optodes.dpos3),paramsFoci)  % Array
+% Draw_Foci_191203(cat(1,info.optodes.spos3,info.optodes.dpos3),paramsFoci)  % Array
 % axis off
 % 
 % %% visualise parcellation in mesh space
