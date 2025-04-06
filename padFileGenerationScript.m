@@ -15,11 +15,11 @@ addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT')); %neurodot 
 
 %% Define dir/file names here so all in one place and easier to change
 % Set output directory
-outputdir = ('/Users/sambe/imageRecon/neurodot/PADs'); %path to directory goes in between quotes
+outputdir = ('/Volumes/G-DRIVE ArmorATD/imageRecon/neurodot/PADs'); %path to directory goes in between quotes
 %Set cap name 
-capName = 'GA00440'; % Create this yourself
+capName = 'GA00369'; % Create this yourself
 %Set data file name - needs to match SD file for cap name
-dataName = '/Users/sambe/dot/nirs/sub-053b/ses-12/nirs/sub-053b_ses-12_task-hand_run-02.nirs';
+dataName = '/Volumes/G-DRIVE ArmorATD/dot/nirs/sub-043e/ses-01/nirs/sub-043e_ses-01_task-hand_run-01.nirs';
 %% Change working dir to output path
 if ~isfolder(outputdir)
     mkdir(outputdir);
@@ -61,7 +61,7 @@ PlotCap(info)
 params_cap.dimension = '3D';
 PlotCap(info, params_cap);view([-40,30])
 
-sbDotPlotCapWithLines(info, params_cap);view([-40,30])
+%sbDotPlotCapWithLines(info, params_cap);view([-40,30])
 
 % 3D layout - Draw_Foci
 tpos=cat(1,info.optodes.spos3,info.optodes.dpos3); %SD positions

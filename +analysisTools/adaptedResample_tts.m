@@ -91,6 +91,7 @@ corrsig = data_in + correction;
 
 %% Resample with endpoints pinned to zero.
 rawresamp = resample(corrsig', N, D)';
+info_in.paradigmFull.sCh = resample(info_in.paradigmFull.sCh, N, D);
 
 %% Add linear fit back to resampled data.
 alpha2 = alpha1 * (D / N); % DO NOT GET FANCY AND REPLACE "D / N". CAUSES PRECISION ERROR.
@@ -109,7 +110,8 @@ if isfield(info_in,'paradigmFull')
         info_out.paradigmFull.synchpts = round(N .* info_out.paradigmFull.synchpts ./ D);
         info_out.paradigmFull.synchpts(info_out.paradigmFull.synchpts == 0) = 1;
     end
-elseif isfield(info_in,'paradigm')
+end
+if isfield(info_in,'paradigm')
     if isfield(info_in.paradigm, 'init_synchpts')
         info_out.paradigm.synchpts = round(N .* info_out.paradigm.init_synchpts ./ D);
         info_out.paradigm.synchpts(info_out.paradigm.synchpts == 0) = 1;

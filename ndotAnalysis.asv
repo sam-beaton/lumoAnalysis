@@ -11,7 +11,7 @@ params.timepoint = '01'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
-driveName = '/Users/sambe/';
+driveName = '/Volumes/G-DRIVE ArmorATD/';
 
 %overarching directory containing .nirs files
 params.parentDir = fullfile(driveName, 'dot'); 
@@ -71,13 +71,14 @@ end
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 59%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     % ------ Reset file-specific parameters -----
     paramsFile = params;
     
     % ------ load/get .nirs data in ndot file form -------
     data = analysisTools.getNdotFile(matchingFiles{nsub});
+    %data = analysisTools.getNdotFile('/Volumes/G-DRIVE ArmorATD/dot/nirs/sub-087k/ses-01/nirs/sub-087k_ses-01_task-hand_run-01.nirs');
 
     % -------- Get data-dependent values and parameters ---------
     %for viewing preprocessed data & image recon/spectroscopy
@@ -87,20 +88,65 @@ for nsub = 59%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     % Get cap name 
     paramsFile.capName = analysisTools.getInfantCap(capCSV, capNames, params.timepoint, matchingFiles{nsub});
 
-    % TEST TEST TEST TEST TEST TEST
-    %detrend:
-    %lmdata = detrend_tts(lmdata);
-    %resample
-    %[data.dcResampled, data.info] = analysisTools.adaptedResample_tts(data.dc, data.info, 1, 1e-5); % 1 Hz Resampling (1 Hz)
+    %  ========================================== TEST TEST TEST TEST TEST TEST ==========================================
+    %filter
+    %lmdata = highpass(lmdata, .02, data.info.system.framerate);                    % High Pass Filter (0.02 Hz)
+    %lmdata = lowpass(lmdata, 0.2, data.info.system.framerate);                     % Low Pass Filter (0.2 Hz)
+
+%     %preprocess
+%     info = FindGoodMeas(lmdata, data.info, 0.075);                                 % Detect Noisy Channels
+%     lmdata = detrend_tts(lmdata);                                             % Detrend Data
+%     lmdata = highpass(lmdata, .02, data.info.system.framerate);                    % High Pass Filter (0.02 Hz)
+%     lmdata = lowpass(lmdata, 1, data.info.system.framerate);                       % Low Pass Filter 1 (1.0 Hz)
+%     hem = gethem(lmdata, data.info);                                               % Superficial Signal Regression
+%     [lmdata, ~] = regcorr(lmdata, data.info, hem);
+%     lmdata = lowpass(lmdata, 0.5, info.system.framerate);                     % Low Pass Filter 2 (0.5 Hz)
+%     [lmdata, data.info] = analysisTools.adaptedResample_tts(lmdata, data.info, 1, 1e-5);                     % 1 Hz Resampling (1 Hz)
+%     [data.info.GVTD, data.info.DQ_metrics.med_GVTD] = CalcGVTD(lmdata(data.info.MEAS.GI & data.info.pairs.r2d<20,:));         % Calculate GVTD
+% 
+%     %view
+%     keep = data.info.pairs.WL==2 & data.info.pairs.r2d < 40 & data.info.MEAS.GI; % measurements to include
+% 
+%     figure('Position',[100 100 550 780])
+%     subplot(3,1,1); plot(lmdata(keep,:)'); 
+%     set(gca,'XLimSpec','tight'), xlabel('Time (samples)'), 
+%     ylabel('log(\phi/\phi_0)') 
+%     m=max(max(abs(lmdata(keep,:))));
+%     subplot(3,1,2); imagesc(lmdata(keep,:),[-1,1].*m); 
+%     colorbar('Location','northoutside');
+%     xlabel('Time (samples)');ylabel('Measurement #')
+%     [ftmag,ftdomain] = fft_tts(squeeze(mean(lmdata(keep,:),1)),data.info.system.framerate); % Generate average spectrum
+%     subplot(3,1,3); semilogx(ftdomain,ftmag);
+%     xlabel('Frequency (Hz)');ylabel('|X(f)|');xlim([1e-3 1])
+%     
+%     nlrGrayPlots_180818(lmdata,data.info); % Gray Plot with synch points
+%     
+%     Plot_TimeTrace_With_PowerSpectrum(lmdata,data.info); % As above, but now automated with all wavelengths
+%     GrayPlots_Rsd_by_Wavelength(lmdata,data.info); % As above but now with all wavelengths
+% 
+%     %block average
+%     badata = BlockAverage(lmdata, data.info.paradigm.synchpts(data.info.paradigm.Pulse_2), 180);
+%     badata=bsxfun(@minus,badata,mean(badata(:,1:4),2));
+%     
+%     figure('Position',[100 100 550 780])
+%     subplot(2,1,1); plot(badata(keep,:)'); 
+%     set(gca,'XLimSpec','tight'), xlabel('Time (samples)'), 
+%     ylabel('log(\phi/\phi_0)') 
+%     m=max(max(abs(badata(keep,:))));
+%     subplot(2,1,2); imagesc(badata(keep,:),[-1,1].*m); 
+%     colorbar('Location','northoutside');
+%     xlabel('Time (samples)');
+%     ylabel('Measurement #')
+    %  ========================================== TEST TEST TEST TEST TEST TEST ==========================================
     
     % -------- View processed data -----------
     %analysisTools.viewProcessedData(lmdata, data.info, paramsFile);
 
     % ------- Calculate block averaged data ----------
-    [badata, ~, ~, ~, tKeep] = analysisTools.adaptedBlockAverage(data.dc, params, data.info);
+    [badata, ~, ~, ~, tKeep] = analysisTools.adaptedBlockAverage(data.d, params, data.info);
 
     % ------- View block averaged data ---------
-    %analysisTools.viewBlockAveraged(badata, paramsFile);
+    analysisTools.viewBlockAveraged(badata, paramsFile);
     
     % ------- Image reconstruction: Load Jacobian and invert for MuA ------
     % construct Jacobian filename, load, and reshape (if needed)
@@ -114,7 +160,7 @@ for nsub = 59%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     % Remove all values from excluded blocks in the reconstruction data
     tKeep = analysisTools.scrubKeepBlocks(tKeep, paramsFile);
-    lmdata = lmdata.*tKeep;
+    %lmdata = lmdata.*tKeep;
 
     % Perform image reconstruction
     [cortexMuA, iJacob] = analysisTools.imageReconstruction(lmdata, jacob, data.info, paramsFile);
@@ -204,7 +250,7 @@ for nsub = 59%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
                 parcelBlockAveraged(iParc, iBlock, :) = parcelData(iParc, allPulses(iBlock)-paramsFile.dtPre:allPulses(iBlock)+paramsFile.dtAfter);
             end
         end
-        
+        for iParcel = 1:numParcels, figure; plot(squeeze(mean(parcelBlockAveraged(iParcel, :, :), 2))), end
     end
 
 
@@ -248,7 +294,8 @@ for iChrom = 1:numel(fieldnames(parcelsSens))
             parcelBlockAveraged(iParc, iBlock, :) = parcelData(iParc, allPulses(iBlock)-paramsFile.dtPre:allPulses(iBlock)+paramsFile.dtAfter);
         end
     end
-    pause
+    %figure; plot(squeeze(mean(parcelBlockAveraged(:, :, :), 1)))
+    for iParcel = 1:numParcels, figure; plot(squeeze(mean(parcelBlockAveraged(iParcel, :, :), 2))), end
 end
 
 %% Load support files

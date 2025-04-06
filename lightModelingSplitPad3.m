@@ -32,10 +32,11 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 %% User-set file params
 %%% Change where necessary
 timePoint = '01'; %age of infant: '01', '06' or '12'
-padname='GA00370'; %name of JSON file containing array info
-meshDir = '/Users/sambe/imageRecon/neurodot/Meshes/'; %TEMP
-outputDir = '/Users/sambe/imageRecon/neurodot/Jacobians/'; %TEMP
-padDir = '/Users/sambe/imageRecon/neurodot/PADs/'; %TEMP
+padname='GA00369'; %name of JSON file containing array info
+driveName = '/Volumes/G-DRIVE ArmorATD/'; %storage drive - easier than changing all names all the time
+meshDir = fullfile(driveName, 'imageRecon/neurodot/Meshes/');
+outputDir = fullfile(driveName, 'imageRecon/neurodot/Jacobians/');
+padDir = fullfile(driveName, 'imageRecon/neurodot/PADs/');
 %meshDir = '/Volumes/G-DRIVE ArmorATD/imageRecon/neurodot/Meshes/'; %folder to save meshes to/load them from
 %outputDir = '/Volumes/G-DRIVE ArmorATD/imageRecon/neurodot/Jacobians'; %Output Directory for files
 
@@ -55,7 +56,7 @@ end
 cd(outputDir)
 
 % Load a Segmented Volume
-[mask,infoT1]=LoadVolumetricData([strcat(timePoint,'_0Months3T_head_segVol')],strcat('/Users/sambe/imageRecon/neurodot/Segmentations/', timePoint,'mo'),'nii');
+[mask,infoT1]=LoadVolumetricData([strcat(timePoint,'_0Months3T_head_segVol')],strcat(driveName, 'imageRecon/neurodot/Segmentations/', timePoint,'mo'),'nii');
 
 % Load PAD file
 load(strcat(padDir, '/Pad_', padname, '.mat')); 
@@ -86,20 +87,20 @@ paramsFoci.radius = 2; %set radius of spheres to 2
 
 %% Visualisation of loaded data
 % Visualize the segmented mask
-PlotSlices(mask,infoT1,p)   
+%PlotSlices(mask,infoT1,p)   
 
 % Visualize PAD
 %3D plot easier than 2D in this case to determine S/D lists
 params_cap.dimension = '3D';
 PlotCap(info, params_cap);view([-40,30]) %3D plot of pad
-% PlotCap(info) %2D plot of pad
+%PlotCap(info) %2D plot of pad
 
 switch padname
     case 'GA00370'
         fprintf("1")
 end
 
-% Use 2D plot of pad to note where you want to split the pad up
+% Use 3D plot of pad to note where you want to split the pad up
 switch padname
     case 'GA00440'
         %sources - red
@@ -111,7 +112,7 @@ switch padname
         D_1 = 21:44; %right
         D_2  = [1:12, 49:60]; %left
         D_3 = [13:20, 45:48]; %frontal
-    case 'GA00370'
+    case {'GA00370', 'GA00369'}
         %sources - red
         S_1 = 13:27; %right
         S_2 = [1:9, 31:36]; %left
@@ -217,7 +218,7 @@ view([270,0])
 %% Generate High Density Head Mesh or load existing mesh
 close all;
 
-if exist(strcat(meshDir, timePoint, 'mo/', hdmeshname, '.mat')) ~=2
+if exist(strcat(meshDir, hdmeshname, '.mat')) ~=2
     %Create HD mesh if none exists in specified directory
 
     %If you get an error when running NirfastMesh_Region
@@ -245,7 +246,7 @@ if exist(strcat(meshDir, timePoint, 'mo/', hdmeshname, '.mat')) ~=2
     fprintf("HD Mesh generated and saved\n");
 else
     %if HD mesh file exists, load it
-    load(strcat(meshDir, timePoint, 'mo/', hdmeshname, '.mat'));
+    load(strcat(meshDir, hdmeshname, '.mat'));
     fprintf("HD Mesh loaded\n");
     %make copy of mesh that only contains nodes and elements for visualization purposes
     visMeshHD.nodes = meshHD.nodes;
@@ -257,7 +258,8 @@ end
 close all; %get rid of any stray plots hanging around
 % Plot HD mesh; use cursor to select Nz, Iz etc and tner coordinates
 % manually below
-PlotMeshSurface(visMeshHD,pM);view([70,60]) %Visualize in coordinate space
+
+%PlotMeshSurface(visMeshHD,pM);view([70,60]) %Visualize in coordinate space
 
 % Nz = Nasion position (indentation at the top of the nose approximately 
 %   between the eyebrows
