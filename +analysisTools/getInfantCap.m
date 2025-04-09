@@ -4,8 +4,8 @@ function capName = getInfantCap(capCSV, capNames, timepoint, filename)
 % testing
     
     % load cap info
-    capInfoInfant = readtable(capCSV);
-    capInfoNames = readtable(capNames);
+    capInfoInfant = readtable(capCSV); %cappingData.csv
+    capInfoNames = readtable(capNames); %capNames.csv
 
     %use filename to find infant ID
     [~ , fileName, ~] = fileparts(filename);
@@ -20,8 +20,15 @@ function capName = getInfantCap(capCSV, capNames, timepoint, filename)
     ageMatchRow = find(ageMatchRow);
     % get cap code usedin redcap
     capCode = num2str(idTable(ageMatchRow, :).cap_size_code);
+    capPosition = idTable(ageMatchRow, :).cap_position{1};
     % use cap code to find layout filename
     capRow = find(capInfoNames.cap_code == str2num(capCode));
     capName = capInfoNames{capRow, "cap_name"}{1};
 
+    if capPosition == 'S'
+        capName = capInfoNames{capRow, "cap_name"}{1};
+    else
+        capName = capInfoNames{capRow, "cap_name"}{1};
+        capName = strcat(capName, '_', capPosition);
+    end
 end

@@ -10,9 +10,13 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 %%% Change where necessary
 timePoint = '12'; %age of infant: '01', '06' or '12'
 capName='GA00440'; %name of JSON file containing array info
-jacobianDir=strcat('/Users/sambe/imageRecon/neurodot/Jacobians/');
-meshDir = strcat('/Users/sambe/imageRecon/neurodot/Meshes/'); %folder containing meshes
-outputDir=strcat('/Users/sambe/imageRecon/neurodot/workbench/'); %Output Directory for files
+
+%storage drive - easier than changing all names all the time
+driveName = '/Volumes/G-DRIVE ArmorATD/';
+
+jacobianDir=strcat(driveName, 'imageRecon/neurodot/Jacobians/');
+meshDir = strcat(driveName, 'imageRecon/neurodot/Meshes/'); %folder containing meshes
+outputDir=strcat(driveName, 'imageRecon/neurodot/workbench/'); %Output Directory for files
 
 %%% Shouldn't need changing:
 ldmeshname=[strcat('LD_Mesh_',timePoint,'mo')];     % LD Mesh name
@@ -25,7 +29,7 @@ end
 cd(outputDir);
 
 % Load a Segmented Volume - YES
-[maskSeg,infoSeg]=LoadVolumetricData([strcat(timePoint,'_0Months3T_head_segVol')],strcat('/Users/sambe/imageRecon/neurodot/Segmentations/', timePoint,'mo'),'nii');
+[maskSeg,infoSeg]=LoadVolumetricData([strcat(timePoint,'_0Months3T_head_segVol')],strcat(driveName, 'imageRecon/neurodot/Segmentations/', timePoint,'mo'),'nii');
 
 % Load A matrix - ALREADY THERE
 jacob = load([jacobianDir,'A_',capName,'_on_HD_Mesh_', timePoint, 'mo.mat'], 'info', 'A');
@@ -34,14 +38,34 @@ jacob = load([jacobianDir,'A_',capName,'_on_HD_Mesh_', timePoint, 'mo.mat'], 'in
 %load([meshDir, ldmeshname,'.mat']);
 
 % Load HD mesh
-%load([meshDir, hdmeshname,'.mat']);
+load([meshDir, hdmeshname,'.mat']);
 
 % Load parcellation - YES
-[maskParc,infoParc]=LoadVolumetricData([strcat(timePoint,'mo_Parc_Reg_Head')],strcat('/Users/sambe/mri/registered/UNC_to_NeuroDev/No Mask/', timePoint, 'mo'),'nii.gz');
+[maskParc,infoParc]=LoadVolumetricData([strcat(timePoint,'mo_Parc_Reg_Head')],strcat(driveName, 'mri/registered/UNC_to_NeuroDev/No Mask/', timePoint, 'mo'),'nii.gz');
 
 % Extract 'dim' from PAD info as a separate variable for reg. to same space
 % (not necessary but easier and consistent with conventions in Neurodot scripts)
 dim = jacob.info.tissue.dim;
+
+%% Visualise array
+% params
+pM.orientation='coord'; pM.Cmap.P='gray'; pM.EdgeColor='none'; pM.reg=0;
+Ns=size(jacob.info.optodes.spos3,1);
+Nd=size(jacob.info.optodes.dpos3,1);
+paramsFoci.color=cat(1,repmat([1,0,0],Ns,1),repmat([0,0,1],Nd,1));
+paramsFoci.color(1,:) = [1 0.4 0.6]; % pink for s
+paramsFoci.color(Ns+1,:) = [0.3010, 0.7450, 0.9330]; %light blue for d
+paramsFoci.radius = 2; %set radius of spheres to 2
+
+% get relaxed optode poistions
+tpos_relaxed = cat(1, jacob.info.optodes.spos3, jacob.info.optodes.dpos3);
+
+% get mesh ready
+m3=CutMesh(meshHD,intersect(find(meshHD.nodes(:,3)>0),find(meshHD.nodes(:,1)>0)));
+
+%plot
+PlotMeshSurface(m3,pM);Draw_Foci_191203(tpos_relaxed, paramsFoci);
+view([-150,23]) %view mesh from behind with an angled top-down view
 
 %% Set params for plotting etc
 % PlotSlices params ---------
@@ -113,10 +137,13 @@ pA.PD=1;pA.Scale=2;pA.Th.P=0;pA.Th.N=-pA.Th.P;
 % PlotSlices(t1,dim,pA,fooV)
 
 %% Visualise FFR
+
+t1=affine3d_img(maskSeg,infoSeg,dim,eye(4)); % put anatomical volume in dim space
+
 keep=(jacob.info.pairs.WL==2 & jacob.info.pairs.r3d<=60);
 a=squeeze(jacob.A(keep,:));
 iA=Tikhonov_invert_Amat(a,0.01,0.1);
-iA=smooth_Amat(iA,dim,5); %5 = smoothing parameter
+iA=analysisTools.adaptedSmoothAmat(iA,dim,5); %5 = smoothing parameter
 ffr=makeFlatFieldRecon(a,iA);
 
 fooV=Good_Vox2vol(ffr,dim);

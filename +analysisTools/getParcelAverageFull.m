@@ -1,4 +1,4 @@
-function parcelsAveraged = getParcelAverageFull(parcelSensMask, chromData)
+function [parcelsAveraged, parcelNumbers] = getParcelAverageFull(parcelSensMask, chromData)
 
 % Returns parcel averaged time series data across the whole recording
 

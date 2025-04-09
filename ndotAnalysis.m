@@ -7,18 +7,17 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '01'; %'01', '06' or '12'
+params.timepoint = '12'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
 driveName = '/Volumes/G-DRIVE ArmorATD/';
-
 %overarching directory containing .nirs files
-params.parentDir = fullfile(driveName, 'dot'); 
+params.parentDir = fullfile(driveName, 'dot');
 %processing method (%suffix after 'preproc-' in derivatives folder)
 params.preProcDir = 'standard'; 
 % directory for (statistical) outputs
-outputDir=fullfile(driveName, 'imageRecon/neurodot/workbench/'); %Output Directory for files
+params.outputDir = fullfile(params.parentDir, 'derivatives'); %Output Directory for files
 %cap info for each participant, in .csv format
 capCSV = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/cappingData.csv'; 
 
@@ -54,14 +53,14 @@ params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', pa
 
 % ---------- Load files needed for all iterations of the loop ----------
 % Age-specific head segmentation
-if ~exist('seg', 'var')
+if ~exist('maskSeg', 'var')
     [maskSeg,infoSeg]=LoadVolumetricData([strcat(params.timepoint,'_0Months3T_head_segVol')], ...
         fullfile(driveName, strcat('imageRecon/neurodot/Segmentations/', params.timepoint,'mo')), ...
         'nii');
 end
 
 % Age-specific cortical parcellation
-if ~exist('parc', 'var')
+if ~exist('maskParc', 'var')
     [maskParc,infoParc]=LoadVolumetricData([strcat(params.timepoint,'mo_Parc_Reg_Head')], ...
         fullfile(driveName, strcat('mri/registered/UNC_to_NeuroDev/No Mask/', params.timepoint, 'mo')), ...
         'nii.gz');
@@ -71,7 +70,9 @@ end
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = 24%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+
+    matchingFiles{nsub}
 
     % ------ Reset file-specific parameters -----
     paramsFile = params;
@@ -152,7 +153,10 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     % construct Jacobian filename, load, and reshape (if needed)
     jacobFName = strcat('A_', paramsFile.capName, '_on_HD_Mesh_', paramsFile.timepoint, 'mo.mat');
     % load A matrix
-    if ~exist ('jacob', 'var')
+    % if previous cap and position same as current one, same jacobian is used
+    if (exist('prevCapName', 'var') && all(paramsFile.capName == prevCapName)) % || ~exist ('jacob', 'var')
+        %do nothing
+    else 
         jacob=load(fullfile(jacobianDir, jacobFName),'info','A'); %load info and the matrix itself from the Jacobian
     end
     % Reshape if necessary
@@ -160,7 +164,7 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     % Remove all values from excluded blocks in the reconstruction data
     tKeep = analysisTools.scrubKeepBlocks(tKeep, paramsFile);
-    %lmdata = lmdata.*tKeep;
+    lmdata = lmdata.*tKeep;
 
     % Perform image reconstruction
     [cortexMuA, iJacob] = analysisTools.imageReconstruction(lmdata, jacob, data.info, paramsFile);
@@ -185,7 +189,7 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     %cortexHbT = cortexHbO + cortexHbR; %total
     %cortexHbD = cortexHbO - cortexHbR; %difference
 
-    % ------- Convert segmentaiton and parcellation to DOT volume space -------
+    % ------- Convert segmentation and parcellation to DOT volume space -------
     % convert segmentation 
     t1 = affine3d_img(maskSeg, infoSeg, jacob.info.tissue.dim, eye(4));
     % convert parcellation
@@ -211,91 +215,110 @@ for nsub = 25%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     regCortexHb{2} = Good_Vox2vol(cortexHb(:, :, 2), jacob.info.tissue.dim); %HbR
 
     % -------- Take parcel average of chromophore data -----------
-    parcelAveraged = cell(2,1);
+    parcelAveraged = cell(data.info.io.Nwl,1); %should be 2*1
     for iLambda = 1:numel(fieldnames(parcelsSens))
         lambdaField = ['lambda' num2str(iLambda)];
-        parcelAveraged{iLambda} = analysisTools.getParcelAverageFull(parcelsSens.(lambdaField), regCortexHb{iLambda});
+        [parcelAveraged{iLambda}, parcelNumbers] = analysisTools.getParcelAverageFull(parcelsSens.(lambdaField), regCortexHb{iLambda});
     end
 
     % ---------- Obtain block data for each parcel ----------
-    % get pulse indices
-    allPulses = [];
-    % loop through Pulse_2 to Pulse_6 (Pulse_1 is baseline)
-    for i = 2:6
-        fieldName = sprintf('Pulse_%d', i);
-        
-        % if the field exists
-        if isfield(data.info.paradigmFull, fieldName)
-            thisPulse = data.info.paradigmFull.(fieldName); %give temp name          
-            allPulses = [allPulses; thisPulse(:)]; % add to existing
-        end
-    end
-    % get sample point where pulse/stim marker occurs
-    allPulses = data.info.paradigmFull.synchpts(allPulses);
-    
-    % store block data
-    % get number of pulses
-    numBlocks = length(allPulses);
-    
-    for iChrom = 1:numel(fieldnames(parcelsSens))
-    
-        parcelData = parcelAveraged{iChrom};
-        
-        %initialise storage for this chromophore
-        numParcels = size(parcelAveraged{iChrom}, 1);
-        parcelBlockAveraged = zeros(numParcels, numBlocks, (paramsFile.dtPre+paramsFile.dtAfter+1));
-    
-        for iParc = 1:numParcels
-            for iBlock = 1:numBlocks
-                parcelBlockAveraged(iParc, iBlock, :) = parcelData(iParc, allPulses(iBlock)-paramsFile.dtPre:allPulses(iBlock)+paramsFile.dtAfter);
-            end
-        end
-        for iParcel = 1:numParcels, figure; plot(squeeze(mean(parcelBlockAveraged(iParcel, :, :), 2))), end
+    parcelBlockAveraged = cell(data.info.io.Nwl,1); %should be 2*1
+    for iLambda = 1:numel(fieldnames(parcelsSens))
+        [parcelBlockAveraged{iLambda}, paramsFile] = analysisTools.getParcelAverageBlock(parcelAveraged, data.info, paramsFile);
     end
 
+    % ---------- Get trial numbers ------------
+    trialNumbers = analysisTools.getTrialNumbers(data.info);
+
+    % ---------- Checks and housekeeping ------------
+    % for comparison with next cap to save loading Jacobian if possible
+    prevCapName = paramsFile.capName; 
+
+    %check trial numbers make sense - continue to next file if not
+    if isempty(trialNumbers)
+        fprintf('synchtypes does not match expected pattern. Skipping...');
+        continue; % Skip to next iteration
+    end
+    
+    % check all blocks were used for averaging i.e. weren't too close to 
+    % ends of recording
+    if isfield(paramsFile, 'blockRemoved')
+        trialNumbers(paramsFile.blockRemoved) = []; %removes unused trial number (1st or last)
+    end
+
+    % ---------- Join parcel data ____________
+    parcelData = struct;
+    parcelData.blockAverage = parcelBlockAveraged;
+    parcelData.trialNumbers = trialNumbers;
+    parcelData.parcelNumbers = parcelNumbers;
 
 
+    % ---------- Save variables ----------
+    analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, parcelData);
 
-    %clearvars -except myImportantVar1 myImportantVar2 myImportantVar3
-    %close all;
+%     [nirsFileDirec, nirsFileName, ~] = fileparts(matchingFiles{nsub});
+%     dirParts = strsplit(nirsFileDirec, '/');
+%     nameParts = split(nirsFileName, '_');
+%     % set filenames for saving
+%     % parcel block avg
+%     parcelFileName = strcat(nameParts{1}, '_', nameParts{2}, '_', nameParts{3}, '_', nameParts{4}, '_', nameParts{5}, '_', 'parcelHb.mat');
+%     parcelDirectoryName = fullfile(params.outputDir, ...
+%         'parcelHb', ...
+%         dirParts{size(dirParts, 2)-2}, ...
+%         dirParts{size(dirParts, 2)-1}, ...
+%         dirParts{size(dirParts, 2)}, ...
+%         nameParts{4});
+%     parcelFileName = fullfile(parcelDirectoryName, parcelFileName);
+%     %cortex Hb
+%     cortexHbFileName = strcat(nameParts{1}, '_', nameParts{2}, '_', nameParts{3}, '_', nameParts{4}, '_', 'cortexHb.mat');
+%     cortexHbDirectoryName = fullfile(params.outputDir, ...
+%         'cortexHb', ...
+%         dirParts{size(dirParts, 2)-2}, ...
+%         dirParts{size(dirParts, 2)-1}, ...
+%         dirParts{size(dirParts, 2)}, ...
+%         nameParts{4});
+%     cortexHbFileName = fullfile(cortexHbDirectoryName, cortexHbFileName);
+%     %cortexMuA
+%     cortexMuaFileName = strcat(nameParts{1}, '_', nameParts{2}, '_', nameParts{3}, '_', nameParts{4}, '_', 'cortexMuA.mat');
+%     cortexMuaDirectoryName = fullfile(params.outputDir, ...
+%         'cortexMuA', ...
+%         dirParts{size(dirParts, 2)-2}, ...
+%         dirParts{size(dirParts, 2)-1}, ...
+%         dirParts{size(dirParts, 2)}, ...
+%         nameParts{4});
+%     cortexMuaFileName = fullfile(cortexMuaDirectoryName, cortexMuaFileName);
+%     
+%     %save parcel data
+%     if ~isfolder(parcelDirectoryName)
+%         mkdir(parcelDirectoryName);
+%     end
+%     save(parcelFileName, 'parcelData');
+%     
+%     %save cortexHb
+%     if ~isfolder(cortexHbDirectoryName)
+%         mkdir(cortexHbDirectoryName);
+%     end
+%     save(cortexHbFileName, 'cortexHb');
+%     
+%     %save cortexMuA
+%     if ~isfolder(cortexMuaDirectoryName)
+%         mkdir(cortexMuaDirectoryName);
+%     end
+%     save(cortexMuaFileName, 'cortexMuA');
+
+    % ---------- Tidying up ----------
+    clearvars -except params jacob driveName capCSV capNames jacobianDir meshDir maskSeg infoSeg maskParc infoParc matchingFiles prevCapName
+    close all; %incase plotting used
 end
 
 %% TESTING
-
-% get pulse indices
-allPulses = [];
-% loop through Pulse_2 to Pulse_6 (Pulse_1 is baseline)
-for i = 2:6
-    fieldName = sprintf('Pulse_%d', i);
-    
-    % if the field exists
-    if isfield(data.info.paradigmFull, fieldName)
-        thisPulse = data.info.paradigmFull.(fieldName); %give temp name          
-        allPulses = [allPulses; thisPulse(:)]; % add to existing
-    end
-end
-% get sample point where pulse/stim marker occurs
-allPulses = data.info.paradigmFull.synchpts(allPulses);
-
-% store block data
-% get number of pulses
-numBlocks = length(allPulses);
-
-for iChrom = 1:numel(fieldnames(parcelsSens))
-
-    parcelData = parcelAveraged{iChrom};
-    
-    %initialise storage for this chromophore
-    numParcels = size(parcelAveraged{iChrom}, 1);
-    parcelBlockAveraged = zeros(numParcels, numBlocks, (paramsFile.dtPre+paramsFile.dtAfter+1));
-
-    for iParc = 1:numParcels
-        for iBlock = 1:numBlocks
-            parcelBlockAveraged(iParc, iBlock, :) = parcelData(iParc, allPulses(iBlock)-paramsFile.dtPre:allPulses(iBlock)+paramsFile.dtAfter);
-        end
-    end
-    %figure; plot(squeeze(mean(parcelBlockAveraged(:, :, :), 1)))
-    for iParcel = 1:numParcels, figure; plot(squeeze(mean(parcelBlockAveraged(iParcel, :, :), 2))), end
+for iParcel = 1:numParcels
+    figure;
+    plot(timeAxis, squeeze(mean(parcelBlockAveraged(iParcel, :, :), 2)));
+    xlabel(strcat('Parcel ', num2str(iParcel)));
+    figure;
+    plot(timeAxis, squeeze(mean(parcelBlockAveraged(iParcel, 1:5, :), 2)));
+    xlabel(strcat('Parcel ', num2str(iParcel)));
 end
 
 %% Load support files
@@ -322,59 +345,59 @@ end
 % end
 
 
-%% Explore the block-averaged data interactively (HbO)
-badataHbO = BlockAverage(cortexHbO, data.info.paradigmFull.synchpts(data.info.paradigmFull.Pulse_2), params.dtAfter); %block averaging of HbO data
-badataHbO=bsxfun(@minus,badataHbO,badataHbO(:,1)); %centres the data by subtrating the value at the first timepoint in each voxel
-badataHbOvol = Good_Vox2vol(badataHbO,jacob.info.tissue.dim); %transforms B.A. data into a 4D volume
-
-Params.Scale=0.8*max(abs(badataHbOvol(:))); % used to scale colormapping
-Params.Th.P=0.2*Params.Scale; % used to scale colormapping
-Params.Th.N=-Params.Th.P; % used to scale colormapping
-Params.Cmap='jet';
-PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,Params,badataHbOvol,data.info) %plot data in 4D (x,y,z,time)
-
-%% Explore the block-averaged data interactively (HbD)
-badataHbD = BlockAverage(cortexHbD, data.info.paradigmFull.synchpts(data.info.paradigmFull.Pulse_2), params.dtAfter); %block averaging of HbD data
-badataHbD=bsxfun(@minus,badataHbD,badataHbD(:,1)); %centres the data by subtrating the value at the first timepoint in each voxel
-badataHbDvol = Good_Vox2vol(badataHbD,jacob.info.tissue.dim); %transforms B.A. data into a 4D volume
-
-Params.Scale=0.8*max(abs(badataHbDvol(:))); % used to scale colormapping
-Params.Th.P=0.2*Params.Scale; % used to scale colormapping
-Params.Th.N=-Params.Th.P; % used to scale colormapping
-Params.Cmap='jet';
-PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,Params,badataHbDvol,data.info) %plot data in 4D (x,y,z,time)
-
-%% Explore whole TS HbO data interactively
-data_HbOvol = Good_Vox2vol(cortexHbO,jacob.info.tissue.dim); %transforms entire data TS into a 4D volume
-ParamsWhole = Params; %duplicate params from B.A.
-ParamsWhole.Scale=0.8*max(abs(data_HbOvol(:))); %alter scale
-PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,ParamsWhole,data_HbOvol,data.info) %plot entire data TS in 4D (x,y,z,time)
-
-%% Visualize block-averaged absorption data 
-% Use the next line to select mu_a (wavelength of 1 or 2 in the third
-% dimension)
-badata_MuA = BlockAverage(cortexMuA(:,:,1), data.info.paradigm.synchpts(data.info.paradigm.Pulse_2), dt); %block averaging of absorption data
-badata_MuA=bsxfun(@minus,badata_MuA,badata_MuA(:,1)); %centre the data
-badata_MuAvol = Good_Vox2vol(badata_MuA,jacob.info.tissue.dim); %transforms B.A. data into a 4D volume
-
-%Params for visualisation
-ParamsMuA.Scale=0.8*max(abs(badata_MuAvol(:)));
-ParamsMuA.Th.P=0.2*ParamsMuA.Scale;
-ParamsMuA.Th.N=-ParamsMuA.Th.P;
-ParamsMuA.Cmap='jet';
-
-%Plot absorption data
-PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,Params,badata_MuAvol,data.info)
-
-%% Visualize block-averaged HbO, HbR, or HbT data 
-% use next line to change to HbO, HbR, or HbT (first input argument
-badata_Hb = BlockAverage(cortexHbT, data.info.paradigm.synchpts(data.info.paradigm.Pulse_2), dt); %B.A. of haemoglobin data 
-badata_Hb=bsxfun(@minus,badataHbO,badata_Hb(:,1)); %centre data
-badata_Hbvol = Good_Vox2vol(badata_Hb,jacob.info.tissue.dim); %transforms B.A. data into a 4D volume
-%Params for visualisation
-ParamsHb.Scale=0.8*max(abs(badataHbOvol(:)));
-ParamsHb.Th.P=0.2*ParamsHb.Scale;
-ParamsHb.Th.N=-ParamsHb.Th.P;
-ParamsHb.Cmap='jet';
-% Plot Hb data
-PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,Params,badataHbOvol,data.info)
+% %% Explore the block-averaged data interactively (HbO)
+% badataHbO = BlockAverage(cortexHbO, data.info.paradigmFull.synchpts(data.info.paradigmFull.Pulse_2), params.dtAfter); %block averaging of HbO data
+% badataHbO=bsxfun(@minus,badataHbO,badataHbO(:,1)); %centres the data by subtrating the value at the first timepoint in each voxel
+% badataHbOvol = Good_Vox2vol(badataHbO,jacob.info.tissue.dim); %transforms B.A. data into a 4D volume
+% 
+% Params.Scale=0.8*max(abs(badataHbOvol(:))); % used to scale colormapping
+% Params.Th.P=0.2*Params.Scale; % used to scale colormapping
+% Params.Th.N=-Params.Th.P; % used to scale colormapping
+% Params.Cmap='jet';
+% PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,Params,badataHbOvol,data.info) %plot data in 4D (x,y,z,time)
+% 
+% %% Explore the block-averaged data interactively (HbD)
+% badataHbD = BlockAverage(cortexHbD, data.info.paradigmFull.synchpts(data.info.paradigmFull.Pulse_2), params.dtAfter); %block averaging of HbD data
+% badataHbD=bsxfun(@minus,badataHbD,badataHbD(:,1)); %centres the data by subtrating the value at the first timepoint in each voxel
+% badataHbDvol = Good_Vox2vol(badataHbD,jacob.info.tissue.dim); %transforms B.A. data into a 4D volume
+% 
+% Params.Scale=0.8*max(abs(badataHbDvol(:))); % used to scale colormapping
+% Params.Th.P=0.2*Params.Scale; % used to scale colormapping
+% Params.Th.N=-Params.Th.P; % used to scale colormapping
+% Params.Cmap='jet';
+% PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,Params,badataHbDvol,data.info) %plot data in 4D (x,y,z,time)
+% 
+% %% Explore whole TS HbO data interactively
+% data_HbOvol = Good_Vox2vol(cortexHbO,jacob.info.tissue.dim); %transforms entire data TS into a 4D volume
+% ParamsWhole = Params; %duplicate params from B.A.
+% ParamsWhole.Scale=0.8*max(abs(data_HbOvol(:))); %alter scale
+% PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,ParamsWhole,data_HbOvol,data.info) %plot entire data TS in 4D (x,y,z,time)
+% 
+% %% Visualize block-averaged absorption data 
+% % Use the next line to select mu_a (wavelength of 1 or 2 in the third
+% % dimension)
+% badata_MuA = BlockAverage(cortexMuA(:,:,1), data.info.paradigm.synchpts(data.info.paradigm.Pulse_2), dt); %block averaging of absorption data
+% badata_MuA=bsxfun(@minus,badata_MuA,badata_MuA(:,1)); %centre the data
+% badata_MuAvol = Good_Vox2vol(badata_MuA,jacob.info.tissue.dim); %transforms B.A. data into a 4D volume
+% 
+% %Params for visualisation
+% ParamsMuA.Scale=0.8*max(abs(badata_MuAvol(:)));
+% ParamsMuA.Th.P=0.2*ParamsMuA.Scale;
+% ParamsMuA.Th.N=-ParamsMuA.Th.P;
+% ParamsMuA.Cmap='jet';
+% 
+% %Plot absorption data
+% PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,Params,badata_MuAvol,data.info)
+% 
+% %% Visualize block-averaged HbO, HbR, or HbT data 
+% % use next line to change to HbO, HbR, or HbT (first input argument
+% badata_Hb = BlockAverage(cortexHbT, data.info.paradigm.synchpts(data.info.paradigm.Pulse_2), dt); %B.A. of haemoglobin data 
+% badata_Hb=bsxfun(@minus,badataHbO,badata_Hb(:,1)); %centre data
+% badata_Hbvol = Good_Vox2vol(badata_Hb,jacob.info.tissue.dim); %transforms B.A. data into a 4D volume
+% %Params for visualisation
+% ParamsHb.Scale=0.8*max(abs(badataHbOvol(:)));
+% ParamsHb.Th.P=0.2*ParamsHb.Scale;
+% ParamsHb.Th.N=-ParamsHb.Th.P;
+% ParamsHb.Cmap='jet';
+% % Plot Hb data
+% PlotSlicesTimeTrace(t1,jacob.info.tissue.dim,Params,badataHbOvol,data.info)
