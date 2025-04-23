@@ -31,10 +31,10 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 
 % User-set file params
 %%% Change where necessary
-timePoint = '12'; %age of infant: '01', '06' or '12'
-padname='GA00440'; %name of JSON file containing array info
+timePoint = '01'; %age of infant: '01', '06' or '12'
+padname='GA00369'; %name of JSON file containing array info
 arrayPositionAltered = 1;
-arrayPosition = 'L';
+arrayPosition = 'LU';
 driveName = '/Volumes/G-DRIVE ArmorATD/'; %storage drive - easier than changing all names all the time
 meshDir = fullfile(driveName, 'imageRecon/neurodot/Meshes/');
 outputDir = fullfile(driveName, 'imageRecon/neurodot/Jacobians/');

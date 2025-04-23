@@ -13,11 +13,11 @@ function [cortexMuA, iJacobOut]  = imageReconstruction(data, jacobian, info, par
     % invert A
     for j = 1:nLambda
         keep = (jacobian.info.pairs.WL == j) & (jacobian.info.pairs.r3d <= params.maxChannelDistance) & info.MEAS.GI; 
-        fprintf('Inverting Jacobian: wavelength %g\n', j)             
+        %fprintf('Inverting Jacobian: wavelength %g\n', j)             
         iJacob = Tikhonov_invert_Amat(jacobian.A(keep, :), 0.01, 0.1); % Invert A-Matrix
-        fprintf('Smoothing Inverse: wavelength %g\n', j)   
+        %fprintf('Smoothing Inverse: wavelength %g\n', j)   
         iJacob = analysisTools.adaptedSmoothAmat(iJacob, jacobian.info.tissue.dim, 5); % Smooth Inverted A-Matrix
-        fprintf('Reconstructing Volume: wavelength %g\n', j) 
+        %fprintf('Reconstructing Volume: wavelength %g\n', j) 
         cortexMuA(:, :, j) = reconstruct_img(data(keep, :), iJacob); % Reconstruct Image Volume
         if j == 1
             iJacobOut.lambda1 = iJacob;

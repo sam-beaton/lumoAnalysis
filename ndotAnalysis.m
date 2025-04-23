@@ -70,241 +70,147 @@ end
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 24%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = %1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
-    matchingFiles{nsub}
+    [~, name, ~] = fileparts(matchingFiles{nsub});
+    fprintf(strcat('Analysing file: ', name, '\n'))
 
     % ------ Reset file-specific parameters -----
     paramsFile = params;
+
+    try
     
-    % ------ load/get .nirs data in ndot file form -------
-    data = analysisTools.getNdotFile(matchingFiles{nsub});
-    %data = analysisTools.getNdotFile('/Volumes/G-DRIVE ArmorATD/dot/nirs/sub-087k/ses-01/nirs/sub-087k_ses-01_task-hand_run-01.nirs');
-
-    % -------- Get data-dependent values and parameters ---------
-    %for viewing preprocessed data & image recon/spectroscopy
-    lmdata = logmean(data.d); 
-    % measurements to include when plotting
-    paramsFile.keep = data.info.pairs.r3d < paramsFile.maxChannelDistance & data.info.MEAS.GI; 
-    % Get cap name 
-    paramsFile.capName = analysisTools.getInfantCap(capCSV, capNames, params.timepoint, matchingFiles{nsub});
-
-    %  ========================================== TEST TEST TEST TEST TEST TEST ==========================================
-    %filter
-%     lmdata = highpass(lmdata, .02, data.info.system.framerate);                    % High Pass Filter (0.02 Hz)
-%     lmdata = lowpass(lmdata, 0.2, data.info.system.framerate);                     % Low Pass Filter (0.2 Hz)
-
-%     %preprocess
-%     info = FindGoodMeas(lmdata, data.info, 0.075);                                 % Detect Noisy Channels
-%     lmdata = detrend_tts(lmdata);                                             % Detrend Data
-%     lmdata = highpass(lmdata, .02, data.info.system.framerate);                    % High Pass Filter (0.02 Hz)
-%     lmdata = lowpass(lmdata, 1, data.info.system.framerate);                       % Low Pass Filter 1 (1.0 Hz)
-%     hem = gethem(lmdata, data.info);                                               % Superficial Signal Regression
-%     [lmdata, ~] = regcorr(lmdata, data.info, hem);
-%     lmdata = lowpass(lmdata, 0.5, info.system.framerate);                     % Low Pass Filter 2 (0.5 Hz)
-%     [lmdata, data.info] = analysisTools.adaptedResample_tts(lmdata, data.info, 1, 1e-5);                     % 1 Hz Resampling (1 Hz)
-%     [data.info.GVTD, data.info.DQ_metrics.med_GVTD] = CalcGVTD(lmdata(data.info.MEAS.GI & data.info.pairs.r2d<20,:));         % Calculate GVTD
-% 
-%     %view
-%     keep = data.info.pairs.WL==2 & data.info.pairs.r2d < 40 & data.info.MEAS.GI; % measurements to include
-% 
-%     figure('Position',[100 100 550 780])
-%     subplot(3,1,1); plot(lmdata(keep,:)'); 
-%     set(gca,'XLimSpec','tight'), xlabel('Time (samples)'), 
-%     ylabel('log(\phi/\phi_0)') 
-%     m=max(max(abs(lmdata(keep,:))));
-%     subplot(3,1,2); imagesc(lmdata(keep,:),[-1,1].*m); 
-%     colorbar('Location','northoutside');
-%     xlabel('Time (samples)');ylabel('Measurement #')
-%     [ftmag,ftdomain] = fft_tts(squeeze(mean(lmdata(keep,:),1)),data.info.system.framerate); % Generate average spectrum
-%     subplot(3,1,3); semilogx(ftdomain,ftmag);
-%     xlabel('Frequency (Hz)');ylabel('|X(f)|');xlim([1e-3 1])
-%     
-%     nlrGrayPlots_180818(lmdata,data.info); % Gray Plot with synch points
-%     
-%     Plot_TimeTrace_With_PowerSpectrum(lmdata,data.info); % As above, but now automated with all wavelengths
-%     GrayPlots_Rsd_by_Wavelength(lmdata,data.info); % As above but now with all wavelengths
-% 
-%     %block average
-%     badata = BlockAverage(lmdata, data.info.paradigm.synchpts(data.info.paradigm.Pulse_2), 180);
-%     badata=bsxfun(@minus,badata,mean(badata(:,1:4),2));
-%     
-%     figure('Position',[100 100 550 780])
-%     subplot(2,1,1); plot(badata(keep,:)'); 
-%     set(gca,'XLimSpec','tight'), xlabel('Time (samples)'), 
-%     ylabel('log(\phi/\phi_0)') 
-%     m=max(max(abs(badata(keep,:))));
-%     subplot(2,1,2); imagesc(badata(keep,:),[-1,1].*m); 
-%     colorbar('Location','northoutside');
-%     xlabel('Time (samples)');
-%     ylabel('Measurement #')
-    %  ========================================== TEST TEST TEST TEST TEST TEST ==========================================
+        % ------ load/get .nirs data in ndot file form -------
+        data = analysisTools.getNdotFile(matchingFiles{nsub});
+        %data = analysisTools.getNdotFile('/Volumes/G-DRIVE ArmorATD/dot/nirs/sub-087k/ses-01/nirs/sub-087k_ses-01_task-hand_run-01.nirs');
     
-    % -------- View processed data -----------
-    %analysisTools.viewProcessedData(lmdata, data.info, paramsFile);
-
-    % ------- Calculate block averaged data ----------
-    [badata, ~, ~, ~, tKeep] = analysisTools.adaptedBlockAverage(lmdata, params, data.info);
-
-    % ------- View block averaged data ---------
-    analysisTools.viewBlockAveraged(badata, paramsFile);
+        % -------- Get data-dependent values and parameters ---------
+        %for viewing preprocessed data & image recon/spectroscopy
+        lmdata = logmean(data.d); 
+        % measurements to include when plotting
+        paramsFile.keep = data.info.pairs.r3d < paramsFile.maxChannelDistance & data.info.MEAS.GI; 
+        % Get cap name 
+        paramsFile.capName = analysisTools.getInfantCap(capCSV, capNames, params.timepoint, matchingFiles{nsub});
+        
+        % -------- View processed data -----------
+        %analysisTools.viewProcessedData(lmdata, data.info, paramsFile);
     
-    % ------- Image reconstruction: Load Jacobian and invert for MuA ------
-    % construct Jacobian filename, load, and reshape (if needed)
-    jacobFName = strcat('A_', paramsFile.capName, '_on_HD_Mesh_', paramsFile.timepoint, 'mo.mat');
-    % load A matrix
-    % if previous cap and position same as current one, same jacobian is used
-    if (exist('prevCapName', 'var') && all(paramsFile.capName == prevCapName)) % || ~exist ('jacob', 'var')
-        %do nothing
-    else 
-        jacob=load(fullfile(jacobianDir, jacobFName),'info','A'); %load info and the matrix itself from the Jacobian
+        % ------- Calculate block averaged data ----------
+        [badata, ~, ~, ~, tKeep] = analysisTools.adaptedBlockAverage(lmdata, params, data.info);
+    
+        % ------- View block averaged data ---------
+        %analysisTools.viewBlockAveraged(badata, paramsFile);
+        
+        % ------- Image reconstruction: Load Jacobian and invert for MuA ------
+        % construct Jacobian filename, load, and reshape (if needed)
+        jacobFName = strcat('A_', paramsFile.capName, '_on_HD_Mesh_', paramsFile.timepoint, 'mo.mat');
+        % load A matrix
+        % if previous cap and position same as current one, same jacobian is used
+        if (exist('prevCapName', 'var') && all(paramsFile.capName == prevCapName)) % || ~exist ('jacob', 'var')
+            %do nothing
+        else 
+            jacob=load(fullfile(jacobianDir, jacobFName),'info','A'); %load info and the matrix itself from the Jacobian
+        end
+        % Reshape if necessary
+        jacob = analysisTools.reshapeJacob(jacob);
+    
+        % Remove all values from excluded blocks in the reconstruction data
+        tKeep = analysisTools.scrubKeepBlocks(tKeep, paramsFile);
+        lmdata = lmdata.*tKeep;
+    
+        % Perform image reconstruction
+        [cortexMuA, iJacob] = analysisTools.imageReconstruction(lmdata, jacob, data.info, paramsFile);
+    
+        % ------- Spectroscopy --------
+        % Generate extinction coeffts (E) if not already in workspace
+        if ~exist('E', 'var')
+            load('Extinction_Coefficients.mat'); % loads ext. coeffts, including Prahl's
+            spectra{1}=1;spectra{2}=1; % placeholders
+            % Rows: (1) lower lambda, (2) higher lambda. Cols: (1) HbO, (2) HbR
+            E = Generate_Spectroscopy_Matrix([data.info.pairs.lambda(1), data.info.pairs.lambda(end)], spectra, ExtCoeffs.Prahl);
+        end
+        
+        % Perform spectroscopy
+        %fprintf('Performing Spectroscopy\n') 
+        cortexHb = analysisTools.adaptedSpectroscopy_img(cortexMuA, E);
+    
+        %fprintf('Creating derivative chromophore matrices\n') 
+        % Variables below needed? can just pass them as written.
+        %cortexHbO = cortexHb(:, :, 1);
+        %cortexHbR = cortexHb(:, :, 2);
+        %cortexHbT = cortexHbO + cortexHbR; %total
+        %cortexHbD = cortexHbO - cortexHbR; %difference
+    
+        % ------- Convert segmentation and parcellation to DOT volume space -------
+        % convert segmentation 
+        t1 = affine3d_img(maskSeg, infoSeg, jacob.info.tissue.dim, eye(4));
+        % convert parcellation
+        regMaskParc=affine3d_img(maskParc, infoParc, jacob.info.tissue.dim, eye(4)); 
+        
+        % ------- Find extent of array coverage for each wavelength -------
+        % Calculate light coverage
+        fooV = analysisTools.getLightCoverage(jacob.A, iJacob, jacob.info, data.info, paramsFile);
+        % Plotting:
+        %PlotSlices(t1, jacob.info.tissue.dim, params, fooV.lambda1) % HbO
+        %PlotSlices(t1, jacob.info.tissue.dim, params, fooV.lambda2) % HbR
+    
+        % ------- Find intersection of array coverage and parcellation --------
+        parcelsSens = analysisTools.getParcelSensitivity(regMaskParc, fooV, params.lightSensitivityMin, params.parcPercentMin);
+        
+        % Plotting:
+        %PlotSlices(t1, jacob.info.tissue.dim, paramsFile, parcelsSens.lambda1)
+        %PlotSlices(t1, jacob.info.tissue.dim, paramsFile, parcelsSens.lambda2)
+    
+        % ------- Convert HbO and HbR data to DOT volume space --------
+        regCortexHb = cell(2,1);
+        regCortexHb{1} = Good_Vox2vol(cortexHb(:, :, 1), jacob.info.tissue.dim); %HbO
+        regCortexHb{2} = Good_Vox2vol(cortexHb(:, :, 2), jacob.info.tissue.dim); %HbR
+    
+        % -------- Take parcel average of chromophore data -----------
+        parcelAveraged = cell(data.info.io.Nwl,1); %should be 2*1
+        for iLambda = 1:numel(fieldnames(parcelsSens))
+            lambdaField = ['lambda' num2str(iLambda)];
+            [parcelAveraged{iLambda}, parcelNumbers] = analysisTools.getParcelAverageFull(parcelsSens.(lambdaField), regCortexHb{iLambda});
+        end
+    
+        % ---------- Obtain block data for each parcel ----------
+        parcelBlockAveraged = cell(data.info.io.Nwl,1); %should be 2*1
+        for iLambda = 1:numel(fieldnames(parcelsSens))
+            [parcelBlockAveraged{iLambda}, paramsFile] = analysisTools.getParcelAverageBlock(parcelAveraged, data.info, paramsFile);
+        end
+    
+        % ---------- Get trial numbers ------------
+        trialNumbers = analysisTools.getTrialNumbers(data.info);
+    
+        % ---------- Checks and housekeeping ------------
+        % for comparison with next cap to save loading Jacobian if possible
+        prevCapName = paramsFile.capName; 
+    
+        %check trial numbers make sense - continue to next file if not
+        if isempty(trialNumbers)
+            fprintf('synchtypes does not match expected pattern. Skipping...');
+            continue; % Skip to next iteration
+        end
+        
+        % check all blocks were used for averaging i.e. weren't too close to 
+        % ends of recording
+        if isfield(paramsFile, 'blockRemoved')
+            trialNumbers(paramsFile.blockRemoved) = []; %removes unused trial number (1st or last)
+        end
+    
+        % ---------- Join parcel data ____________
+        parcelData = struct;
+        parcelData.blockAverage = parcelBlockAveraged;
+        parcelData.trialNumbers = trialNumbers;
+        parcelData.parcelNumbers = parcelNumbers;
+        parcelData.capName = paramsFile.capName;
+    
+        % ---------- Save variables ----------
+        analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, parcelData);
+
+    catch
+        fprintf(strcat('Could not run analysis - look into manually.\n'))
     end
-    % Reshape if necessary
-    jacob = analysisTools.reshapeJacob(jacob);
-
-    % Remove all values from excluded blocks in the reconstruction data
-    tKeep = analysisTools.scrubKeepBlocks(tKeep, paramsFile);
-    lmdata = lmdata.*tKeep;
-
-    % Perform image reconstruction
-    [cortexMuA, iJacob] = analysisTools.imageReconstruction(lmdata, jacob, data.info, paramsFile);
-
-    % ------- Spectroscopy --------
-    % Generate extinction coeffts (E) if not already in workspace
-    if ~exist('E', 'var')
-        load('Extinction_Coefficients.mat'); % loads ext. coeffts, including Prahl's
-        spectra{1}=1;spectra{2}=1; % placeholders
-        % Rows: (1) lower lambda, (2) higher lambda. Cols: (1) HbO, (2) HbR
-        E = Generate_Spectroscopy_Matrix([data.info.pairs.lambda(1), data.info.pairs.lambda(end)], spectra, ExtCoeffs.Prahl);
-    end
-    
-    % Perform spectroscopy
-    fprintf('Performing Spectroscopy\n') 
-    cortexHb = analysisTools.adaptedSpectroscopy_img(cortexMuA, E);
-
-    %fprintf('Creating derivative chromophore matrices\n') 
-    % Variables below needed? can just pass them as written.
-    %cortexHbO = cortexHb(:, :, 1);
-    %cortexHbR = cortexHb(:, :, 2);
-    %cortexHbT = cortexHbO + cortexHbR; %total
-    %cortexHbD = cortexHbO - cortexHbR; %difference
-
-    % ------- Convert segmentation and parcellation to DOT volume space -------
-    % convert segmentation 
-    t1 = affine3d_img(maskSeg, infoSeg, jacob.info.tissue.dim, eye(4));
-    % convert parcellation
-    regMaskParc=affine3d_img(maskParc, infoParc, jacob.info.tissue.dim, eye(4)); 
-    
-    % ------- Find extent of array coverage for each wavelength -------
-    % Calculate light coverage
-    fooV = analysisTools.getLightCoverage(jacob.A, iJacob, jacob.info, data.info, paramsFile);
-    % Plotting:
-    %PlotSlices(t1, jacob.info.tissue.dim, params, fooV.lambda1) % HbO
-    %PlotSlices(t1, jacob.info.tissue.dim, params, fooV.lambda2) % HbR
-
-    % ------- Find intersection of array coverage and parcellation --------
-    parcelsSens = analysisTools.getParcelSensitivity(regMaskParc, fooV, params.lightSensitivityMin, params.parcPercentMin);
-    
-    % Plotting:
-    %PlotSlices(t1, jacob.info.tissue.dim, paramsFile, parcelsSens.lambda1)
-    %PlotSlices(t1, jacob.info.tissue.dim, paramsFile, parcelsSens.lambda2)
-
-    % ------- Convert HbO and HbR data to DOT volume space --------
-    regCortexHb = cell(2,1);
-    regCortexHb{1} = Good_Vox2vol(cortexHb(:, :, 1), jacob.info.tissue.dim); %HbO
-    regCortexHb{2} = Good_Vox2vol(cortexHb(:, :, 2), jacob.info.tissue.dim); %HbR
-
-    % -------- Take parcel average of chromophore data -----------
-    parcelAveraged = cell(data.info.io.Nwl,1); %should be 2*1
-    for iLambda = 1:numel(fieldnames(parcelsSens))
-        lambdaField = ['lambda' num2str(iLambda)];
-        [parcelAveraged{iLambda}, parcelNumbers] = analysisTools.getParcelAverageFull(parcelsSens.(lambdaField), regCortexHb{iLambda});
-    end
-
-    % ---------- Obtain block data for each parcel ----------
-    parcelBlockAveraged = cell(data.info.io.Nwl,1); %should be 2*1
-    for iLambda = 1:numel(fieldnames(parcelsSens))
-        [parcelBlockAveraged{iLambda}, paramsFile] = analysisTools.getParcelAverageBlock(parcelAveraged, data.info, paramsFile);
-    end
-
-    % ---------- Get trial numbers ------------
-    trialNumbers = analysisTools.getTrialNumbers(data.info);
-
-    % ---------- Checks and housekeeping ------------
-    % for comparison with next cap to save loading Jacobian if possible
-    prevCapName = paramsFile.capName; 
-
-    %check trial numbers make sense - continue to next file if not
-    if isempty(trialNumbers)
-        fprintf('synchtypes does not match expected pattern. Skipping...');
-        continue; % Skip to next iteration
-    end
-    
-    % check all blocks were used for averaging i.e. weren't too close to 
-    % ends of recording
-    if isfield(paramsFile, 'blockRemoved')
-        trialNumbers(paramsFile.blockRemoved) = []; %removes unused trial number (1st or last)
-    end
-
-    % ---------- Join parcel data ____________
-    parcelData = struct;
-    parcelData.blockAverage = parcelBlockAveraged;
-    parcelData.trialNumbers = trialNumbers;
-    parcelData.parcelNumbers = parcelNumbers;
-
-
-    % ---------- Save variables ----------
-    analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, parcelData);
-
-%     [nirsFileDirec, nirsFileName, ~] = fileparts(matchingFiles{nsub});
-%     dirParts = strsplit(nirsFileDirec, '/');
-%     nameParts = split(nirsFileName, '_');
-%     % set filenames for saving
-%     % parcel block avg
-%     parcelFileName = strcat(nameParts{1}, '_', nameParts{2}, '_', nameParts{3}, '_', nameParts{4}, '_', nameParts{5}, '_', 'parcelHb.mat');
-%     parcelDirectoryName = fullfile(params.outputDir, ...
-%         'parcelHb', ...
-%         dirParts{size(dirParts, 2)-2}, ...
-%         dirParts{size(dirParts, 2)-1}, ...
-%         dirParts{size(dirParts, 2)}, ...
-%         nameParts{4});
-%     parcelFileName = fullfile(parcelDirectoryName, parcelFileName);
-%     %cortex Hb
-%     cortexHbFileName = strcat(nameParts{1}, '_', nameParts{2}, '_', nameParts{3}, '_', nameParts{4}, '_', 'cortexHb.mat');
-%     cortexHbDirectoryName = fullfile(params.outputDir, ...
-%         'cortexHb', ...
-%         dirParts{size(dirParts, 2)-2}, ...
-%         dirParts{size(dirParts, 2)-1}, ...
-%         dirParts{size(dirParts, 2)}, ...
-%         nameParts{4});
-%     cortexHbFileName = fullfile(cortexHbDirectoryName, cortexHbFileName);
-%     %cortexMuA
-%     cortexMuaFileName = strcat(nameParts{1}, '_', nameParts{2}, '_', nameParts{3}, '_', nameParts{4}, '_', 'cortexMuA.mat');
-%     cortexMuaDirectoryName = fullfile(params.outputDir, ...
-%         'cortexMuA', ...
-%         dirParts{size(dirParts, 2)-2}, ...
-%         dirParts{size(dirParts, 2)-1}, ...
-%         dirParts{size(dirParts, 2)}, ...
-%         nameParts{4});
-%     cortexMuaFileName = fullfile(cortexMuaDirectoryName, cortexMuaFileName);
-%     
-%     %save parcel data
-%     if ~isfolder(parcelDirectoryName)
-%         mkdir(parcelDirectoryName);
-%     end
-%     save(parcelFileName, 'parcelData');
-%     
-%     %save cortexHb
-%     if ~isfolder(cortexHbDirectoryName)
-%         mkdir(cortexHbDirectoryName);
-%     end
-%     save(cortexHbFileName, 'cortexHb');
-%     
-%     %save cortexMuA
-%     if ~isfolder(cortexMuaDirectoryName)
-%         mkdir(cortexMuaDirectoryName);
-%     end
-%     save(cortexMuaFileName, 'cortexMuA');
 
     % ---------- Tidying up ----------
     clearvars -except params jacob driveName capCSV capNames jacobianDir meshDir maskSeg infoSeg maskParc infoParc matchingFiles prevCapName

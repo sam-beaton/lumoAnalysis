@@ -16,6 +16,6 @@ function data = getNdotFile(nirsFile)
         load(nDotFile)
     else
         % convert nirs to ndot file
-        data = analysisTools.adaptedNirs2ndot(nirsFile, 0, nDotFile);
+        data = analysisTools.adaptedNirs2ndot(nirsFile, 1, nDotFile);
     end
 end
