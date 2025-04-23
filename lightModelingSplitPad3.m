@@ -31,10 +31,10 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 
 % User-set file params
 %%% Change where necessary
-timePoint = '01'; %age of infant: '01', '06' or '12'
-padname='GA00369'; %name of JSON file containing array info
-arrayPositionAltered = 1;
-arrayPosition = 'LU';
+timePoint = '06'; %age of infant: '01', '06' or '12'
+padname='GA00274'; %name of JSON file containing array info
+arrayPositionAltered = 0;
+arrayPosition = 'U';
 driveName = '/Volumes/G-DRIVE ArmorATD/'; %storage drive - easier than changing all names all the time
 meshDir = fullfile(driveName, 'imageRecon/neurodot/Meshes/');
 outputDir = fullfile(driveName, 'imageRecon/neurodot/Jacobians/');
@@ -94,7 +94,7 @@ paramsFoci.color(1,:) = [1 0.4 0.6]; % pink for s
 paramsFoci.color(Ns+1,:) = [0.3010, 0.7450, 0.9330]; %light blue for d
 paramsFoci.radius = 2; %set radius of spheres to 2
 
-% Visualisation of loaded data
+%% Visualisation of loaded data
 % Visualize the segmented mask
 %PlotSlices(mask,infoT1,p)   
 
@@ -106,6 +106,14 @@ PlotCap(info, params_cap);view([-40,30]) %3D plot of pad
 
 % Use 3D plot of pad to note where you want to split the pad up
 switch padname
+    case {'GA00274'}
+        %sources - red
+        S_1 = 1:18; %right
+        S_2 = 19:36; %left
+        
+        %detectors - blue
+        D_1 = 1:24; %right
+        D_2  = 25:48; %left
     case {'GA00440', 'GA00438', 'GA00439'}
         %sources - red
         S_1 = 16:33; %right
@@ -128,7 +136,7 @@ switch padname
         D_3 = [13:16, 37:40]; %frontal
 end
 
-% Split pad into 3 pads
+% Split into separate pads
 
 %%% Pad1, Right hand side ---------------------
 params_cap.lambda = unique(info.pairs.lambda); % Ex: [750, 850]
@@ -171,23 +179,25 @@ paramsFoci_p2.color(Ns_p2+1,:) = [0.3010, 0.7450, 0.9330]; %light blue for d1
 paramsFoci_p2.radius = 2; %set radius of spheres to 2
 
 %%%Pad3: Frontal -----------------------
-params_cap.CapName = 'Front_pad'; % Create this yourself
-%Make pad3
-tpos_Pad3 = cat(1,info.optodes.spos3(S_3,:),info.optodes.dpos3(D_3,:));
-pad3 = info;
-pad3.optodes.spos3 = pad3.optodes.spos3(S_3,:);
-pad3.optodes.dpos3 = pad3.optodes.dpos3(D_3,:);
-pad3.optodes.spos2 = pad3.optodes.spos2(S_3,:);
-pad3.optodes.dpos2 = pad3.optodes.dpos2(D_3,:);
-pad3 = Generate_pad_from_grid(pad3.optodes,params_cap);
-pad3.pairs.r2d = pad3.pairs.r3d;
-%optode pos and visualization params
-Ns_p3=size(pad3.optodes.spos3,1);
-Nd_p3=size(pad3.optodes.dpos3,1);
-paramsFoci_p3.color=cat(1,repmat([1,0,0],Ns_p3,1),repmat([0,0,1],Nd_p3,1));
-paramsFoci_p3.color(1,:) = [1 0.4 0.6]; % pink for S
-paramsFoci_p3.color(Ns_p3+1,:) = [0.3010, 0.7450, 0.9330]; %light blue for D
-paramsFoci_p3.radius = 2; %set radius of spheres to 2
+if ~strcmp(gridname, 'GA00274')
+    params_cap.CapName = 'Front_pad'; % Create this yourself
+    %Make pad3
+    tpos_Pad3 = cat(1,info.optodes.spos3(S_3,:),info.optodes.dpos3(D_3,:));
+    pad3 = info;
+    pad3.optodes.spos3 = pad3.optodes.spos3(S_3,:);
+    pad3.optodes.dpos3 = pad3.optodes.dpos3(D_3,:);
+    pad3.optodes.spos2 = pad3.optodes.spos2(S_3,:);
+    pad3.optodes.dpos2 = pad3.optodes.dpos2(D_3,:);
+    pad3 = Generate_pad_from_grid(pad3.optodes,params_cap);
+    pad3.pairs.r2d = pad3.pairs.r3d;
+    %optode pos and visualization params
+    Ns_p3=size(pad3.optodes.spos3,1);
+    Nd_p3=size(pad3.optodes.dpos3,1);
+    paramsFoci_p3.color=cat(1,repmat([1,0,0],Ns_p3,1),repmat([0,0,1],Nd_p3,1));
+    paramsFoci_p3.color(1,:) = [1 0.4 0.6]; % pink for S
+    paramsFoci_p3.color(Ns_p3+1,:) = [0.3010, 0.7450, 0.9330]; %light blue for D
+    paramsFoci_p3.radius = 2; %set radius of spheres to 2
+end
 
 % Generate or load low density head mesh
 if exist(strcat(meshDir, timePoint, 'mo/', ldmeshname, '.mat')) ~= 2
@@ -216,8 +226,10 @@ PlotMeshSurface(meshLD,pM);Draw_Foci_191203(tpos_Pad2, paramsFoci_p2); %3D
 view([270,0])
 
 % Front
-PlotMeshSurface(meshLD,pM);Draw_Foci_191203(tpos_Pad3, paramsFoci_p3); %3D
-view([270,0])
+if ~strcmp(gridname, 'GA00274')
+    PlotMeshSurface(meshLD,pM);Draw_Foci_191203(tpos_Pad3, paramsFoci_p3); %3D
+    view([270,0])
+end
 
 % Generate High Density Head Mesh or load existing mesh
 close all;
@@ -341,14 +353,6 @@ tposNew_pad3 = tposNew;
 pM.reg=0;
 PlotMeshSurface(meshLD,pM);Draw_Foci_191203(tposNew,paramsFoci_p3)
 view(270,25)
-
-% Get affine matrix that can be used to transform FROM participant space TO MNI space
-if isfield(ds.dO, 'affineTform') %if mesh scaled, affineTform field will exist, save it to workspace
-    affine_Subj2MNI = [ds.dO.affineTform, zeros(3,1)];
-    save('affine_matrix_Subject_to_MNI.mat', 'affine_Subj2MNI')
-else %otherwise, set affine_Subj2MNI to eye(4)
-    affine_Subj2MNI = eye(4);
-end
 
 %% AlignMe Section, Pad1 (LD Mesh)  (RIGHT) 
 % Create an instance of our custom DataStorage HANDLE class to store variables
@@ -519,34 +523,65 @@ view(270,25)
 %concatenate to provide a full list of sources and detectors.
 %This could probably be rewritten to run faster...
 
-%sources
-newSourceInd = zeros([Ns, 1]);
-joinedSourceInd = [S_1, S_2, S_3];
-for iSrc = 1:Ns
-    newSourceInd(iSrc) = find(joinedSourceInd == iSrc); %find index of iSrc'th source
+if ~strcmp(gridname, 'GA00274')
+    %sources
+    newSourceInd = zeros([Ns, 1]);
+    joinedSourceInd = [S_1, S_2, S_3];
+    for iSrc = 1:Ns
+        newSourceInd(iSrc) = find(joinedSourceInd == iSrc); %find index of iSrc'th source
+    end
+    %join source positions
+    source_relaxed = cat(1,tposNew_HD_pad1(1:Ns_p1,:), tposNew_HD_pad2(1:Ns_p2,:), tposNew_HD_pad3(1:Ns_p3,:));
+    %reorder according to original indices
+    source_relaxed = source_relaxed(newSourceInd, :);
+    
+    %detectors
+    newDetInd = zeros([Nd, 1]);
+    joinedDetInd = [D_1, D_2, D_3];
+    for iDet = 1:Nd
+        newDetInd(iDet) = find(joinedDetInd == iDet);
+    end
+    %join detector positions
+    detector_relaxed = cat(1,tposNew_HD_pad1(1+Ns_p1:end,:), tposNew_HD_pad2(1+Ns_p2:end,:), tposNew_HD_pad3(1+Ns_p3:end,:));
+    %reorder according to original indices
+    detector_relaxed = detector_relaxed(newDetInd, :);
+    
+    check_source = isequal(Ns, size(source_relaxed,1));
+    check_detector = isequal(Nd, size(detector_relaxed,1));
+    if check_source == 0 || check_detector == 0
+        error('Sources or Detectors are not correct, please make sure you split the pad correctly')
+    end
+    tpos_relaxed = cat(1, source_relaxed, detector_relaxed);
+else
+    %sources
+    newSourceInd = zeros([Ns, 1]);
+    joinedSourceInd = [S_1, S_2];
+    for iSrc = 1:Ns
+        newSourceInd(iSrc) = find(joinedSourceInd == iSrc); %find index of iSrc'th source
+    end
+    %join source positions
+    source_relaxed = cat(1,tposNew_HD_pad1(1:Ns_p1,:), tposNew_HD_pad2(1:Ns_p2,:));
+    %reorder according to original indices
+    source_relaxed = source_relaxed(newSourceInd, :);
+    
+    %detectors
+    newDetInd = zeros([Nd, 1]);
+    joinedDetInd = [D_1, D_2];
+    for iDet = 1:Nd
+        newDetInd(iDet) = find(joinedDetInd == iDet);
+    end
+    %join detector positions
+    detector_relaxed = cat(1,tposNew_HD_pad1(1+Ns_p1:end,:), tposNew_HD_pad2(1+Ns_p2:end,:));
+    %reorder according to original indices
+    detector_relaxed = detector_relaxed(newDetInd, :);
+    
+    check_source = isequal(Ns, size(source_relaxed,1));
+    check_detector = isequal(Nd, size(detector_relaxed,1));
+    if check_source == 0 || check_detector == 0
+        error('Sources or Detectors are not correct, please make sure you split the pad correctly')
+    end
+    tpos_relaxed = cat(1, source_relaxed, detector_relaxed);
 end
-%join source positions
-source_relaxed = cat(1,tposNew_HD_pad1(1:Ns_p1,:), tposNew_HD_pad2(1:Ns_p2,:), tposNew_HD_pad3(1:Ns_p3,:));
-%reorder according to original indices
-source_relaxed = source_relaxed(newSourceInd, :);
-
-%detectors
-newDetInd = zeros([Nd, 1]);
-joinedDetInd = [D_1, D_2, D_3];
-for iDet = 1:Nd
-    newDetInd(iDet) = find(joinedDetInd == iDet);
-end
-%join detector positions
-detector_relaxed = cat(1,tposNew_HD_pad1(1+Ns_p1:end,:), tposNew_HD_pad2(1+Ns_p2:end,:), tposNew_HD_pad3(1+Ns_p3:end,:));
-%reorder according to original indices
-detector_relaxed = detector_relaxed(newDetInd, :);
-
-check_source = isequal(Ns, size(source_relaxed,1));
-check_detector = isequal(Nd, size(detector_relaxed,1));
-if check_source == 0 || check_detector == 0
-    error('Sources or Detectors are not correct, please make sure you split the pad correctly')
-end
-tpos_relaxed = cat(1, source_relaxed, detector_relaxed);
 
 %visualize
 PlotMeshSurface(visMeshHD,pM);Draw_Foci_191203(tpos_relaxed,paramsFoci)
@@ -618,7 +653,14 @@ flags.op.n_bone=[1.4,1.4];
 flags.op.n_csf=[1.4,1.4];
 flags.op.n_gray=[1.4,1.4];
 flags.op.n_white=[1.4,1.4];
-flags.srcnum=Ns;                                     % Number of sources
+flags.srcnum=Ns;
+% Get affine matrix that can be used to transform FROM participant space TO MNI space
+if isfield(ds.dO, 'affineTform') %if mesh scaled, affineTform field will exist, save it to workspace
+    affine_Subj2MNI = [ds.dO.affineTform, zeros(3,1)];
+    save('affine_matrix_Subject_to_MNI.mat', 'affine_Subj2MNI')
+else %otherwise, set affine_Subj2MNI to eye(4)
+    affine_Subj2MNI = eye(4);
+end% Number of sources
 flags.t4=affine_Subj2MNI;                            % Affine matrix for going from subject-specific space to MNI space
 flags.t4_target='MNI';                               % string
 flags.makeA=1;                                       % don't make A, just make G

@@ -39,14 +39,14 @@ function capName = getInfantCap(capCSV, capNames, timepoint, filename)
         switch subSplit{2}(1:3)
             case '016'
                 capName = 'GA00274';
-            case {'018', '011', '002', '001'}
-                capName = 'GA00438_NF';
-            case '020'
-                capName = 'GA00440_NF';
+            case {'018', 
+
+            case '011'
+            case '002'
             case '007'
-                capName = 'GA00438_L_NF';
+            case '020'
             case '004'
-                capName = 'GA00440_U_NF';
+            case '001'
         end
     end
 end

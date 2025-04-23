@@ -70,7 +70,7 @@ end
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 1%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = 10%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     [~, name, ~] = fileparts(matchingFiles{nsub});
     fprintf(strcat('Analysing file: ', name, '\n'))
