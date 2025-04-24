@@ -31,10 +31,10 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 
 % User-set file params
 %%% Change where necessary
-timePoint = '06'; %age of infant: '01', '06' or '12'
-padname='GA00274'; %name of JSON file containing array info
-arrayPositionAltered = 0;
-arrayPosition = 'U';
+timePoint = '01'; %age of infant: '01', '06' or '12'
+padname='GA00369'; %name of JSON file containing array info
+arrayPositionAltered = 1;
+arrayPosition = 'R';
 driveName = '/Volumes/G-DRIVE ArmorATD/'; %storage drive - easier than changing all names all the time
 meshDir = fullfile(driveName, 'imageRecon/neurodot/Meshes/');
 outputDir = fullfile(driveName, 'imageRecon/neurodot/Jacobians/');
@@ -110,26 +110,33 @@ switch padname
         %sources - red
         S_1 = 1:18; %right
         S_2 = 19:36; %left
-        
         %detectors - blue
         D_1 = 1:24; %right
         D_2  = 25:48; %left
+
+    case {'GA00438_NF', 'GA00440_NF'}
+        %sources - red
+        S_1 = 10:27; %right
+        S_2 = [1:9, 28:36]; %left
+        %detectors - blue
+        D_1 = 13:36; %right
+        D_2 = [1:12, 37:48]; %left
+
     case {'GA00440', 'GA00438', 'GA00439'}
         %sources - red
         S_1 = 16:33; %right
         S_2 = [1:9, 37:45]; %left
         S_3 = [10:15, 34:36]; %frontal
-        
         %detectors - blue
         D_1 = 21:44; %right
         D_2  = [1:12, 49:60]; %left
         D_3 = [13:20, 45:48]; %frontal
+
     case {'GA00370', 'GA00369', 'GA00351'}
         %sources - red
         S_1 = 13:27; %right
         S_2 = [1:9, 31:36]; %left
         S_3 = [10:12, 28:30]; %frontal
-        
         %detectors - blue
         D_1 = 17:36; %right
         D_2  = [1:12, 41:48]; %left
@@ -179,7 +186,7 @@ paramsFoci_p2.color(Ns_p2+1,:) = [0.3010, 0.7450, 0.9330]; %light blue for d1
 paramsFoci_p2.radius = 2; %set radius of spheres to 2
 
 %%%Pad3: Frontal -----------------------
-if ~strcmp(gridname, 'GA00274')
+if ~strcmp(gridname, 'GA00274') && ~contains(gridname, 'NF')
     params_cap.CapName = 'Front_pad'; % Create this yourself
     %Make pad3
     tpos_Pad3 = cat(1,info.optodes.spos3(S_3,:),info.optodes.dpos3(D_3,:));
@@ -226,7 +233,7 @@ PlotMeshSurface(meshLD,pM);Draw_Foci_191203(tpos_Pad2, paramsFoci_p2); %3D
 view([270,0])
 
 % Front
-if ~strcmp(gridname, 'GA00274')
+if ~strcmp(gridname, 'GA00274') && ~contains(gridname, 'NF')
     PlotMeshSurface(meshLD,pM);Draw_Foci_191203(tpos_Pad3, paramsFoci_p3); %3D
     view([270,0])
 end
@@ -323,36 +330,38 @@ atlasFiducials = [EEGPts(1,:); ... % Nasion --> EEGPts(1,:)
 % this one first as easiest to align centrally wrt. nasion - can then use
 % dy, dz, roty and rotz variables for other two pad arrays
 
-% Create an instance of our custom DataStorage HANDLE class to store variables
-ds = DataStorage(); 
-
-% Input structure
-ds.dI.tpos = tpos_Pad3;   
-ds.dI.mesh = meshLD;
-ds.dI.pad = pad3; 
-ds.dI.pM = pM;
-ds.dI.paramsFoci = paramsFoci_p3; 
-ds.dI.Ns = Ns_p3;
-ds.dI.photoPath = ''; %no participant photos for this tutorial, so leave as empty string
-ds.dI.imageType = '.jpeg'; %type of image file used, default is .jpeg
-ds.dI.atlasFiducials = atlasFiducials;
-ds.dI.dy = -80;
-
-% Create an instance of your App Designer application, passing variable 'ds' into the app.  
-% The code is stuck at this line until your app closes, which destroys 'myapp'
-% But the data is assigned to ds variable in workspace
-% Run AlignMe
-myapp=AlignMe_2020b(ds);
-while isvalid(myapp); pause(0.1); end % Wait for app to close before continuing script
-
-% get relaxed optode positions from AlignMe
-tposNew = ds.dO.tpos2_relaxed; 
-tposNew_pad3 = tposNew;
-
-% visualize mesh with relaxed optodes
-pM.reg=0;
-PlotMeshSurface(meshLD,pM);Draw_Foci_191203(tposNew,paramsFoci_p3)
-view(270,25)
+if ~strcmp(gridname, 'GA00274') && ~contains(gridname, 'NF')
+    % Create an instance of our custom DataStorage HANDLE class to store variables
+    ds = DataStorage(); 
+    
+    % Input structure
+    ds.dI.tpos = tpos_Pad3;   
+    ds.dI.mesh = meshLD;
+    ds.dI.pad = pad3; 
+    ds.dI.pM = pM;
+    ds.dI.paramsFoci = paramsFoci_p3; 
+    ds.dI.Ns = Ns_p3;
+    ds.dI.photoPath = ''; %no participant photos for this tutorial, so leave as empty string
+    ds.dI.imageType = '.jpeg'; %type of image file used, default is .jpeg
+    ds.dI.atlasFiducials = atlasFiducials;
+    ds.dI.dy = -80;
+    
+    % Create an instance of your App Designer application, passing variable 'ds' into the app.  
+    % The code is stuck at this line until your app closes, which destroys 'myapp'
+    % But the data is assigned to ds variable in workspace
+    % Run AlignMe
+    myapp=AlignMe_2020b(ds);
+    while isvalid(myapp); pause(0.1); end % Wait for app to close before continuing script
+    
+    % get relaxed optode positions from AlignMe
+    tposNew = ds.dO.tpos2_relaxed; 
+    tposNew_pad3 = tposNew;
+    
+    % visualize mesh with relaxed optodes
+    pM.reg=0;
+    PlotMeshSurface(meshLD,pM);Draw_Foci_191203(tposNew,paramsFoci_p3)
+    view(270,25)
+end
 
 %% AlignMe Section, Pad1 (LD Mesh)  (RIGHT) 
 % Create an instance of our custom DataStorage HANDLE class to store variables
@@ -421,36 +430,40 @@ view(270,25)
 % consistency with order of previous alignment on LD mesh
 close all; %close any stray plots
 
-% Create an instance of  DataStorage class
-ds_HD = DataStorage();
+if ~strcmp(gridname, 'GA00274') && ~contains(gridname, 'NF')
 
-% Input structure
-ds_HD.dI.tpos = tposNew_pad3;      
-ds_HD.dI.mesh = meshHD;
-ds_HD.dI.pad = pad3;            
-ds_HD.dI.pM = pM;
-ds_HD.dI.paramsFoci = paramsFoci_p3;
-ds_HD.dI.Ns = Ns_p3;
-ds_HD.dI.photoPath = ''; %no participant photos for this tutorial, so leave as empty string
-ds_HD.dI.imageType = '.jpeg'; %type of image file used, default is .jpeg
-ds_HD.dI.atlasFiducials = atlasFiducials;
+    % Create an instance of  DataStorage class
+    ds_HD = DataStorage();
+    
+    % Input structure
+    ds_HD.dI.tpos = tposNew_pad3;      
+    ds_HD.dI.mesh = meshHD;
+    ds_HD.dI.pad = pad3;            
+    ds_HD.dI.pM = pM;
+    ds_HD.dI.paramsFoci = paramsFoci_p3;
+    ds_HD.dI.Ns = Ns_p3;
+    ds_HD.dI.photoPath = ''; %no participant photos for this tutorial, so leave as empty string
+    ds_HD.dI.imageType = '.jpeg'; %type of image file used, default is .jpeg
+    ds_HD.dI.atlasFiducials = atlasFiducials;
+    
+    % Create an instance of your App Designer application,
+    % passing variable 'ds' into the app.  
+    % The code is stuck at this line until your app closes, which destroys 'myapp'
+    % But the data is assigned to ds variable in workspace
+    % Run AlignMe
+    myapp = AlignMe_2020b(ds_HD);
+    while isvalid(myapp); pause(0.1); end % Wait for app to close before continuing script
+    
+    % get relaxed optode positions from AlignMe
+    tposNew_HD = ds_HD.dO.tpos2_relaxed;
+    tposNew_HD_pad3 = tposNew_HD;
+    
+    % visualize mesh with relaxed optodes
+    pM.reg=0;
+    PlotMeshSurface(meshLD,pM);Draw_Foci_191203(tposNew_HD,paramsFoci_p3)
+    view(90,25)
+end
 
-% Create an instance of your App Designer application,
-% passing variable 'ds' into the app.  
-% The code is stuck at this line until your app closes, which destroys 'myapp'
-% But the data is assigned to ds variable in workspace
-% Run AlignMe
-myapp = AlignMe_2020b(ds_HD);
-while isvalid(myapp); pause(0.1); end % Wait for app to close before continuing script
-
-% get relaxed optode positions from AlignMe
-tposNew_HD = ds_HD.dO.tpos2_relaxed;
-tposNew_HD_pad3 = tposNew_HD;
-
-% visualize mesh with relaxed optodes
-pM.reg=0;
-PlotMeshSurface(meshLD,pM);Draw_Foci_191203(tposNew_HD,paramsFoci_p3)
-view(90,25)
 %% Relax optodes onto HD Mesh, pad1, right hand side
 % Create an instance of  DataStorage class
 ds_HD = DataStorage();
@@ -517,13 +530,14 @@ PlotMeshSurface(meshLD,pM);Draw_Foci_191203(tposNew_HD,paramsFoci_p2)
 view(270,25)
 
 
-%% Put relaxed pads back together
+%% Put relaxed pads back together, save PAD and check optode locations
+
 %Find the numbers of sources and detectors, in order, as well as the
 %(split) pade file in which they are contained. Then save this order, and
 %concatenate to provide a full list of sources and detectors.
 %This could probably be rewritten to run faster...
 
-if ~strcmp(gridname, 'GA00274')
+if ~strcmp(gridname, 'GA00274') && ~contains(gridname, 'NF')
     %sources
     newSourceInd = zeros([Ns, 1]);
     joinedSourceInd = [S_1, S_2, S_3];
@@ -588,7 +602,7 @@ PlotMeshSurface(visMeshHD,pM);Draw_Foci_191203(tpos_relaxed,paramsFoci)
 view(0,90) %dorsal view
 
 
-%% Update Pad info Structure 
+% Update Pad info Structure 
 info.optodes.spos3=tpos_relaxed(1:Ns,:);
 info.optodes.dpos3=tpos_relaxed((Ns+1):end,:);
 m=0;
@@ -606,7 +620,7 @@ end
 % save pad file
 save(['Pad_',hdmeshname,'_',gridname, '.mat'],'info') % CHANGE/ADD HERE
 
-%% PREPARE! --> mesh with grid array in same file set for NIRFAST
+% PREPARE! --> mesh with grid array in same file set for NIRFAST
 mesh=meshHD;
 mesh=PrepareMeshForNIRFAST(mesh,[hdmeshname,'_',gridname],tpos_relaxed); % CHANGE/ADD POSITION TO PADNAME TO ALTER 
 PlotMeshSurface(mesh,pM);Draw_Foci_191203(tpos_relaxed, paramsFoci);

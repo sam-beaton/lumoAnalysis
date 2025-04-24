@@ -17,9 +17,9 @@ addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT')); %neurodot 
 % Set output directory
 outputdir = ('/Volumes/G-DRIVE ArmorATD/imageRecon/neurodot/PADs'); %path to directory goes in between quotes
 %Set cap name 
-capName = 'GA00274'; % Create this yourself
+capName = 'GA00438'; % Create this yourself
 %Set data file name - needs to match SD file for cap name
-dataName = '/Volumes/G-DRIVE ArmorATD/dot/nirs/sub-016d/ses-06/nirs/sub-016d_ses-06_task-hand_run-01.nirs';
+dataName = '/Volumes/G-DRIVE ArmorATD/dot/nirs/sub-062d/ses-06/nirs/sub-062d_ses-06_task-hand_run-01.nirs';
 %% Change working dir to output path
 if ~isfolder(outputdir)
     mkdir(outputdir);

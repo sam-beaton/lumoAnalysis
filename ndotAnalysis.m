@@ -70,7 +70,7 @@ end
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 1%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = 5%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     [~, name, ~] = fileparts(matchingFiles{nsub});
     fprintf(strcat('Analysing file: ', name, '\n'))
@@ -83,7 +83,7 @@ for nsub = 1%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         % ------ load/get .nirs data in ndot file form -------
         data = analysisTools.getNdotFile(matchingFiles{nsub});
         %data = analysisTools.getNdotFile('/Volumes/G-DRIVE ArmorATD/dot/nirs/sub-087k/ses-01/nirs/sub-087k_ses-01_task-hand_run-01.nirs');
-    
+        
         % -------- Get data-dependent values and parameters ---------
         %for viewing preprocessed data & image recon/spectroscopy
         lmdata = logmean(data.d); 
@@ -94,10 +94,10 @@ for nsub = 1%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         
         % -------- View processed data -----------
         %analysisTools.viewProcessedData(lmdata, data.info, paramsFile);
-    
+        
         % ------- Calculate block averaged data ----------
         [badata, ~, ~, ~, tKeep] = analysisTools.adaptedBlockAverage(lmdata, params, data.info);
-    
+        
         % ------- View block averaged data ---------
         %analysisTools.viewBlockAveraged(badata, paramsFile);
         
@@ -106,21 +106,23 @@ for nsub = 1%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         jacobFName = strcat('A_', paramsFile.capName, '_on_HD_Mesh_', paramsFile.timepoint, 'mo.mat');
         % load A matrix
         % if previous cap and position same as current one, same jacobian is used
-        if (exist('prevCapName', 'var') && all(paramsFile.capName == prevCapName)) % || ~exist ('jacob', 'var')
-            %do nothing
+        if exist('prevCapName', 'var') && ...
+           numel(paramsFile.capName) == numel(prevCapName) && ...
+           all(paramsFile.capName == prevCapName)
+           %do nothing
         else 
             jacob=load(fullfile(jacobianDir, jacobFName),'info','A'); %load info and the matrix itself from the Jacobian
         end
         % Reshape if necessary
         jacob = analysisTools.reshapeJacob(jacob);
-    
+        
         % Remove all values from excluded blocks in the reconstruction data
         tKeep = analysisTools.scrubKeepBlocks(tKeep, paramsFile);
         lmdata = lmdata.*tKeep;
-    
+        
         % Perform image reconstruction
         [cortexMuA, iJacob] = analysisTools.imageReconstruction(lmdata, jacob, data.info, paramsFile);
-    
+        
         % ------- Spectroscopy --------
         % Generate extinction coeffts (E) if not already in workspace
         if ~exist('E', 'var')
@@ -133,7 +135,7 @@ for nsub = 1%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         % Perform spectroscopy
         %fprintf('Performing Spectroscopy\n') 
         cortexHb = analysisTools.adaptedSpectroscopy_img(cortexMuA, E);
-    
+        
         %fprintf('Creating derivative chromophore matrices\n') 
         % Variables below needed? can just pass them as written.
         %cortexHbO = cortexHb(:, :, 1);
@@ -153,35 +155,35 @@ for nsub = 1%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         % Plotting:
         %PlotSlices(t1, jacob.info.tissue.dim, params, fooV.lambda1) % HbO
         %PlotSlices(t1, jacob.info.tissue.dim, params, fooV.lambda2) % HbR
-    
+        
         % ------- Find intersection of array coverage and parcellation --------
         parcelsSens = analysisTools.getParcelSensitivity(regMaskParc, fooV, params.lightSensitivityMin, params.parcPercentMin);
         
         % Plotting:
         %PlotSlices(t1, jacob.info.tissue.dim, paramsFile, parcelsSens.lambda1)
         %PlotSlices(t1, jacob.info.tissue.dim, paramsFile, parcelsSens.lambda2)
-    
+        
         % ------- Convert HbO and HbR data to DOT volume space --------
         regCortexHb = cell(2,1);
         regCortexHb{1} = Good_Vox2vol(cortexHb(:, :, 1), jacob.info.tissue.dim); %HbO
         regCortexHb{2} = Good_Vox2vol(cortexHb(:, :, 2), jacob.info.tissue.dim); %HbR
-    
+        
         % -------- Take parcel average of chromophore data -----------
         parcelAveraged = cell(data.info.io.Nwl,1); %should be 2*1
         for iLambda = 1:numel(fieldnames(parcelsSens))
             lambdaField = ['lambda' num2str(iLambda)];
             [parcelAveraged{iLambda}, parcelNumbers] = analysisTools.getParcelAverageFull(parcelsSens.(lambdaField), regCortexHb{iLambda});
         end
-    
+        
         % ---------- Obtain block data for each parcel ----------
         parcelBlockAveraged = cell(data.info.io.Nwl,1); %should be 2*1
         for iLambda = 1:numel(fieldnames(parcelsSens))
             [parcelBlockAveraged{iLambda}, paramsFile] = analysisTools.getParcelAverageBlock(parcelAveraged, data.info, paramsFile);
         end
-    
+        
         % ---------- Get trial numbers ------------
         trialNumbers = analysisTools.getTrialNumbers(data.info);
-    
+        
         % ---------- Checks and housekeeping ------------
         % for comparison with next cap to save loading Jacobian if possible
         prevCapName = paramsFile.capName; 
@@ -197,17 +199,17 @@ for nsub = 1%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         if isfield(paramsFile, 'blockRemoved')
             trialNumbers(paramsFile.blockRemoved) = []; %removes unused trial number (1st or last)
         end
-    
+        
         % ---------- Join parcel data ____________
         parcelData = struct;
         parcelData.blockAverage = parcelBlockAveraged;
         parcelData.trialNumbers = trialNumbers;
         parcelData.parcelNumbers = parcelNumbers;
         parcelData.capName = paramsFile.capName;
-    
+        
         % ---------- Save variables ----------
         analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, parcelData);
-
+        
     catch
         fprintf(strcat('Could not run analysis - look into manually.\n'))
     end
@@ -218,14 +220,7 @@ for nsub = 1%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 end
 
 %% TESTING
-for iParcel = 1:numParcels
-    figure;
-    plot(timeAxis, squeeze(mean(parcelBlockAveraged(iParcel, :, :), 2)));
-    xlabel(strcat('Parcel ', num2str(iParcel)));
-    figure;
-    plot(timeAxis, squeeze(mean(parcelBlockAveraged(iParcel, 1:5, :), 2)));
-    xlabel(strcat('Parcel ', num2str(iParcel)));
-end
+
 
 %% Load support files
 % Load mesh

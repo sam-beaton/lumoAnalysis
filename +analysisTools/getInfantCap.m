@@ -44,9 +44,9 @@ function capName = getInfantCap(capCSV, capNames, timepoint, filename)
             case '020'
                 capName = 'GA00440_NF';
             case '007'
-                capName = 'GA00438_L_NF';
+                capName = 'GA00438_NF_L';
             case '004'
-                capName = 'GA00440_U_NF';
+                capName = 'GA00440_NF_U';
         end
     end
 end

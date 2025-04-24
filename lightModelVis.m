@@ -8,7 +8,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 
 %% User-set file params
 %%% Change where necessary
-timePoint = '12'; %age of infant: '01', '06' or '12'
+timePoint = '01'; %age of infant: '01', '06' or '12'
 capName='GA00440'; %name of JSON file containing array info
 
 %storage drive - easier than changing all names all the time

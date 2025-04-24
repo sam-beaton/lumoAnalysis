@@ -24,7 +24,7 @@ function trialNumbers = getTrialNumbers(info)
     end
     
     % No valid match
-    warning('synchtypes does not match expected pattern. Skipping...');
+    warning('synchtypes does not match expected pattern. Skipping...\n');
     trialNumbers = []; % Return empty 
 
 end
