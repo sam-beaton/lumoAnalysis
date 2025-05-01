@@ -7,11 +7,12 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '06'; %'01', '06' or '12'
+params.timepoint = '12'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
 driveName = '/Volumes/G-DRIVE ArmorATD/';
+driveName = '/Users/sambe/';
 %overarching directory containing .nirs files
 params.parentDir = fullfile(driveName, 'dot');
 %processing method (%suffix after 'preproc-' in derivatives folder)
@@ -70,10 +71,10 @@ end
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 5%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = [7,27,28,40,49,56,66]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     [~, name, ~] = fileparts(matchingFiles{nsub});
-    fprintf(strcat('Analysing file: ', name, '\n'))
+    fprintf(strcat('\nAnalysing file: ', name, '\n'))
 
     % ------ Reset file-specific parameters -----
     paramsFile = params;
@@ -96,10 +97,13 @@ for nsub = 5%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         %analysisTools.viewProcessedData(lmdata, data.info, paramsFile);
         
         % ------- Calculate block averaged data ----------
-        [badata, ~, ~, ~, tKeep] = analysisTools.adaptedBlockAverage(lmdata, params, data.info);
+        %[badata, ~, ~, ~, tKeep] = analysisTools.adaptedBlockAverage(lmdata, params, data.info);
         
         % ------- View block averaged data ---------
         %analysisTools.viewBlockAveraged(badata, paramsFile);
+
+        % ------- Find tKeep (useful if not running block average) --------
+        tKeep = analysisTools.findtKeep(lmdata, params, data.info);
         
         % ------- Image reconstruction: Load Jacobian and invert for MuA ------
         % construct Jacobian filename, load, and reshape (if needed)
@@ -190,7 +194,7 @@ for nsub = 5%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     
         %check trial numbers make sense - continue to next file if not
         if isempty(trialNumbers)
-            fprintf('synchtypes does not match expected pattern. Skipping...');
+            fprintf('synchtypes does not match expected pattern. Skipping...\n');
             continue; % Skip to next iteration
         end
         

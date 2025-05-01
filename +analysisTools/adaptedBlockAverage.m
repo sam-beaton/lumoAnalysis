@@ -145,15 +145,6 @@ for k = 1:Nbl
     % add NaN padding where needed via concatenation 
     blocks(:, :, k) = cat(2, NaN(Nm, dtbPre), dataSegment, NaN(Nm, dtbPost)); 
 
-    % Original structure, not finished (only accounts for block extending
-    % beyond end of file):
-
-%     if (synchSamp + dt - 1) <= Nt %checks block contained within recording
-%         blocks(:, :, k) = data_in(:, synchSamp-params.dtPre:synchSamp+params.dtAfter - 1); 
-%     else
-%         dtb = synchSamp + dt - 1 - Nt; % ADAPT
-%         blocks(:, :, k) = cat(2,data_in(:,synchSamp:end),NaN(size(data_in,1),dtb)); % ADAPT
-%     end
 end
 
 %% Average blocks and return.
