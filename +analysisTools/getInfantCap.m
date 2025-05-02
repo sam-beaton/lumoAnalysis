@@ -25,7 +25,7 @@ function capName = getInfantCap(capCSV, capNames, timepoint, filename)
             ageMatchRow = contains(idTable.redcap_event_name, strcat(timepoint(2), '_'));
             ageMatchRow = find(ageMatchRow);
             % get cap code usedin redcap
-            capCode = num2str(idTable(ageMatchRow, :).cap_size_code);
+            capCode = num2str(idTable(ageMatchRow, :).cap_size_used);
             capPosition = idTable(ageMatchRow, :).cap_position{1};
             % use cap code to find layout filename
             capRow = find(capInfoNames.cap_code == str2num(capCode));
@@ -33,6 +33,9 @@ function capName = getInfantCap(capCSV, capNames, timepoint, filename)
         
             if capPosition == 'S'
                 capName = capInfoNames{capRow, "cap_name"}{1};
+            elseif isempty(capPosition)
+                capName = capInfoNames{capRow, "cap_name"}{1};
+                warning('No cap position available: using default position.')
             else
                 capName = capInfoNames{capRow, "cap_name"}{1};
                 capName = strcat(capName, '_', capPosition);

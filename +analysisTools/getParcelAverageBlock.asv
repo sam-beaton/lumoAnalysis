@@ -6,10 +6,8 @@ function [parcelBlockAveragedChrom, params] = getParcelAverageBlock(parcelAverag
 % series data
 
     parcelBlockAveraged = cell(info.io.Nwl,1); %should be 2*1
-    
-    % account for different sampling frequencies
-    dtPre = floor(params.dtPre*(info.system.framerate/10)); 
-    dtAfter = floor(params.dtAfter*(info.system.framerate/10));
+
+    params.dtPre*(info.system.framerate/10) %accounts for diffr
 
     % get pulse indices
     allPulses = [];
@@ -29,7 +27,7 @@ function [parcelBlockAveragedChrom, params] = getParcelAverageBlock(parcelAverag
     % store block data
     % get number of pulses
     numBlocks = length(allPulses);
-    numSamples = dtPre + dtAfter + 1;
+    numSamples = params.dtPre + params.dtAfter + 1;
     timeAxis = linspace(-params.dtPre, params.dtAfter, numSamples);
     
     for iChrom = 1:info.io.Nwl
@@ -38,12 +36,12 @@ function [parcelBlockAveragedChrom, params] = getParcelAverageBlock(parcelAverag
         
         %initialise storage for this chromophore
         numParcels = size(parcelAveraged{iChrom}, 1);
-        parcelBlockAveragedChrom = zeros(numParcels, numBlocks, (dtPre+dtAfter+1));
+        parcelBlockAveragedChrom = zeros(numParcels, numBlocks, (params.dtPre+params.dtAfter+1));
     
         for iParc = 1:numParcels
             for iBlock = 1:numBlocks
-                if allPulses(iBlock)-dtPre >= 1 && allPulses(iBlock)+dtAfter <= size(parcelData, 2)
-                    parcelBlockAveragedChrom(iParc, iBlock, :) = parcelData(iParc, allPulses(iBlock)-dtPre:allPulses(iBlock)+dtAfter);
+                if allPulses(iBlock)-params.dtPre >= 1 && allPulses(iBlock)+params.dtAfter <= size(parcelData, 2)
+                    parcelBlockAveragedChrom(iParc, iBlock, :) = parcelData(iParc, allPulses(iBlock)-params.dtPre:allPulses(iBlock)+params.dtAfter);
                 else
                     params.blockRemoved = iBlock; %will either be first or last
                 end

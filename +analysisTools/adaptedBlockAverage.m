@@ -52,15 +52,19 @@ NDtf = (ndims(data_in) > 2); % sets to one if data >2 dimensional (needs transfo
 pulse = [info.paradigmFull.Pulse_2];
 Nbl = length(pulse); % number of presentations for first stim - based on full paradigm
 
+% account for different sampling frequencies
+dtPre = floor(params.dtPre*(info.system.framerate/10)); 
+dtAfter = floor(params.dtAfter*(info.system.framerate/10));
+
 % Check to make sure that the block after the last synch point for this
 % pulse does not exceed the data's time dimension. 
-if (info.paradigmFull.synchpts(pulse(end)) + params.dtAfter) > Nt
+if (info.paradigmFull.synchpts(pulse(end)) + dtAfter) > Nt
     pulse = pulse(1:end-1);
     Nbl = Nbl - 1; 
 end
 % Check to make sure that the block before the first synch point for this
 % pulse does not exceed the data's time dimension. 
-if (info.paradigmFull.synchpts(pulse(1)) - params.dtPre) < 1
+if (info.paradigmFull.synchpts(pulse(1)) - dtPre) < 1
     pulse = pulse(2:end);
     Nbl = Nbl - 1; 
 end
@@ -93,7 +97,7 @@ if ~exist('Tkeep','var')
             startRow = max(stimTime, 1);   % Ensure index is within bounds
             % Set end & ensure index is within bounds
             % ('- params.dtPre' ensures doesn't run into next block)
-            endRow = min(stimTime + params.dtAfter - params.dtPre, size(data_in, 1)); 
+            endRow = min(stimTime + dtAfter - dtPre, size(data_in, 1)); 
             % Set the specified column (channel) to zero in the selected range
             Tkeep(stimChan, startRow:endRow) = 0;
         end
@@ -106,12 +110,12 @@ data_in(~Tkeep)=NaN; %sets unwanted samplepoints to NaN
 
 %% Cut data into blocks.
 Nm=size(data_in,1); %number of channels
-dt = params.dtPre+params.dtAfter; % number of samples in block
+dt = dtPre+dtAfter; % define number of samples in block 
 blocks=zeros(Nm,dt,Nbl); % (numChans)*(sample points post-stim)*(number of stim presentations)
 for k = 1:Nbl
     synchSamp = info.paradigmFull.synchpts(pulse(k)); % timing of pulse/stim
-    blockStart = synchSamp - params.dtPre; % Start index of the block
-    blockEnd = synchSamp + params.dtAfter - 1; % Block end index
+    blockStart = synchSamp - dtPre; % Start index of the block
+    blockEnd = synchSamp + dtAfter - 1; % Block end index
     dtbPre = 0; 
     dtbPost = 0;
 
