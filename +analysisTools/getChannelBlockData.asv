@@ -38,6 +38,7 @@ function [channelBlockData, sourceNumbers, detectorNumbers, params] = getChannel
         pulseSamples = info.paradigmFull.synchpts(info.paradigmFull.synchtype ~= 1);
     
         % check pulse not too close to start or end of recording 
+        params.blockRemoved = []
         for iBlock = [1, length(pulseSamples)] % will either be first or last
             if pulseSamples(iBlock)-dtPre < 1 || pulseSamples(iBlock)+dtAfter > size(dataIn, 2)
                 params.blockRemoved = iBlock;
@@ -55,6 +56,8 @@ function [channelBlockData, sourceNumbers, detectorNumbers, params] = getChannel
     
         for chan = 1:length(hboChans)   
             for pulseSample = 1:length(pulseSamples')
+                hboChans(chan)
+                pulseSamples(pulseSample)+dtAfter
                 if ~(any(all(negLocs == [pulseSamples(pulseSample), hboChans(chan)], 2)))
                     hboData(chan, pulseSample, :) = dataIn(hboChans(chan), pulseSamples(pulseSample)-dtPre:pulseSamples(pulseSample)+dtAfter);
                 else

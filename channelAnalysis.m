@@ -42,10 +42,10 @@ params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', pa
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 1%[7,27,28,40,49,56,66]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = [8,16,48,58,72,76]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     [~, name, ~] = fileparts(matchingFiles{nsub});
-    fprintf(strcat('\nAnalysing file: ', name, '\n'))
+    fprintf('\nAnalysing file %d: %s\n', nsub, name);
 
     % ------ Reset file-specific parameters -----
     paramsFile = params;
@@ -87,13 +87,13 @@ for nsub = 1%[7,27,28,40,49,56,66]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 1
             continue; % Skip to next iteration - warning already in getChannelBlockData
         end
         
-        % check all blocks were used for averaging i.e. weren't too close to 
+        % check all blocks were used i.e. weren't too close to 
         % ends of recording
-        if isfield(paramsFile, 'blockRemoved')
+        if ~isempty(paramsFile.blockRemoved)
             trialNumbers(paramsFile.blockRemoved) = []; %removes unused trial number (1st or last)
         end
         
-        % ---------- Join parcel data ____________
+        % ---------- Join channel data ____________
         channelData = struct;
         channelData.blockData = channelBlockData;
         channelData.trialNumbers = trialNumbers;

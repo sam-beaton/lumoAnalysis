@@ -42,10 +42,10 @@ params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', pa
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 1%[7,27,28,40,49,56,66]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     [~, name, ~] = fileparts(matchingFiles{nsub});
-    fprintf(strcat('\nAnalysing file: ', name, '\n'))
+    fprintf('\nAnalysing file %d: %s\n', nsub, name);
 
     % ------ Reset file-specific parameters -----
     paramsFile = params;
@@ -74,10 +74,7 @@ for nsub = 1%[7,27,28,40,49,56,66]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 1
         %analysisTools.viewBlockAveraged(badata, paramsFile);
         
         % ---------- Obtain block data for each channel ----------
-        channelBlockData = cell(data.info.io.Nwl,1); %should be 2*1
-        for iLambda = 1:data.info.io.Nwl
-            [channelBlockData{iLambda}, sourceNumbers, detectorNumbers, paramsFile] = analysisTools.getChannelBlockData(data.dc, data.info, paramsFile);
-        end
+        [channelBlockData, sourceNumbers, detectorNumbers, paramsFile] = analysisTools.getChannelBlockData(data.dc, data.info, paramsFile);
         
         % ---------- Checks and housekeeping ------------   
         %check trial numbers make sense - continue to next file if not
@@ -85,23 +82,27 @@ for nsub = 1%[7,27,28,40,49,56,66]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 1
             fprintf('synchtypes does not match expected pattern. Skipping...\n');
             continue; % Skip to next iteration
         end
+
+        if isempty(channelBlockData)
+            continue; % Skip to next iteration - warning already in getChannelBlockData
+        end
         
-        % check all blocks were used for averaging i.e. weren't too close to 
+        % check all blocks were used i.e. weren't too close to 
         % ends of recording
         if isfield(paramsFile, 'blockRemoved')
             trialNumbers(paramsFile.blockRemoved) = []; %removes unused trial number (1st or last)
         end
         
-        % ---------- Join parcel data ____________
+        % ---------- Join channel data ____________
         channelData = struct;
-        channelData.blockData = channelBlockData; %unfinished
+        channelData.blockData = channelBlockData;
         channelData.trialNumbers = trialNumbers;
         channelData.sourceNumbers = sourceNumbers;
         channelData.detectorNumbers = detectorNumbers;
         channelData.capName = paramsFile.capName;
         
         % ---------- Save variables ----------
-        analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, channelData);
+        analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, [], [], [], channelData);
         
     catch
         fprintf(strcat('Could not run analysis - look into manually.\n'))

@@ -38,10 +38,30 @@ function [channelBlockData, sourceNumbers, detectorNumbers, params] = getChannel
         pulseSamples = info.paradigmFull.synchpts(info.paradigmFull.synchtype ~= 1);
     
         % check pulse not too close to start or end of recording 
-        for iBlock = [1, length(pulseSamples)] % will either be first or last
-            if pulseSamples(iBlock)-dtPre < 1 || pulseSamples(iBlock)+dtAfter > size(dataIn, 2)
-                params.blockRemoved = iBlock;
-                pulseSamples(iBlock) = [];
+        % initialise tracking variables
+        params.blockRemoved = [];
+        originalIndices = 1:length(pulseSamples);
+        
+        % check all pulses have acceptable buffer to ends of file
+        iRemoved = true;
+        while iRemoved
+            iRemoved = false;
+            % check first pulse
+            if pulseSamples(1) - dtPre < 1 || pulseSamples(1) + dtAfter > size(dataIn, 2)
+                params.blockRemoved(end+1) = originalIndices(1);  % record original index
+                pulseSamples(1) = [];  % remove pulse
+                originalIndices(1) = [];  % update tracking
+                iRemoved = true;
+                continue;  % start again
+            end
+        
+            % check last pulse
+            if pulseSamples(end) - dtPre < 1 || pulseSamples(end) + dtAfter > size(dataIn, 2)
+                params.blockRemoved(end+1) = originalIndices(end);  
+                pulseSamples(end) = []; 
+                originalIndices(end) = [];  
+                iRemoved = true;
+                % loop will recheck without continue
             end
         end
     
