@@ -7,7 +7,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '01'; %'01', '06' or '12'
+params.timepoint = '06'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
@@ -19,24 +19,25 @@ params.parentDir = fullfile(driveName, 'dot');
 params.preProcDir = 'standard'; 
 % directory for (statistical) outputs
 params.outputDir = fullfile(params.parentDir, 'derivatives'); %Output Directory for files
-%cap info for each participant, in .csv format
-capCSV = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/cappingData.csv'; 
 
 %Light and parcel sensitivity thresholds for overlap
 params.lightSensitivityMin = 0.05; %light
 params.parcPercentMin = 0.5; % min. voxel coverage %age of parcels required, as a decimal
 
-% ---------- Constant parameters -------------
+% maximum channel distance to analyse
+params.maxChannelDistance = 45; % Frijia et al (2021): 45
+
+% ---------- Constant parameters - no need to change -------------
 % cap names corresponding to info in capCSV file
-capNames = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/capNames.csv'; % DOESN'T CHANGE
+capNames = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/capNames.csv';
+%cap info for each participant, in .csv format
+capCSV = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/cappingData.csv'; 
 % directory with Jacobians (A matrices) and PADs fitted to age-specific
 % head models
 jacobianDir=fullfile(driveName, 'imageRecon/neurodot/Jacobians/');
-% maximum channel distance to analyse
-params.maxChannelDistance = 45; % Frijia et al (2021)
 % Block averaging
-params.dtPre = 40; % start
-params.dtAfter = 180; % finish
+params.dtPre = 45; % start
+params.dtAfter = 190; % finish
 % Plotslices
 params.PD=1;
 params.Scale=1;
@@ -47,8 +48,6 @@ params.cbmode = 0; %use custom colorbar limits
 params.Cmap.P = colorcube; %use custom colormap
 
 % ---------- Derivative parameters -------------
-% mesh directory dependant on age only
-meshDir = fullfile(driveName, 'imageRecon/neurodot/Meshes/'); % ############# needed? #############
 %data location task and age dependant
 params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', params.preProcDir));
 
@@ -67,44 +66,47 @@ if ~exist('maskParc', 'var')
         'nii.gz');
 end
 
-%%
-ages = [6, 12];
-for ageIdx = 1:length(ages)
+%% Search for task files 
+matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
-    age = sprintf('%02d', ages(ageIdx));
+% Run Analysis
+for nsub = [1, 2, 3, 4, 6, 7]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
-    fprintf('CHECKING FRAMERATE FOR AGE %s\n', age);
-    params.timepoint = age; %'01', '06' or '12'
+    [~, name, ~] = fileparts(matchingFiles{nsub});
+    fprintf(strcat('\nAnalysing file: ', name, '\n'))
 
-    matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
-    
-    % Run Analysis
-    for nsub = 11:20%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
-    
-        [~, name, ~] = fileparts(matchingFiles{nsub});
-        fprintf(strcat('\nChecking file: ', name, '\n'))
-    
-        % ------ Reset file-specific parameters -----
-        paramsFile = params;
-    
-        try
-            
-            nirs = load(matchingFiles{nsub}, '-mat');
-            [row, col] = find(nirs.sCh == -2);
-            A = [row, col];
-            A = sortrows(A);
-            framerate  = nirs.t(2)-nirs.t(1);
-            fprintf(num2str(framerate))
+    % ------ Reset file-specific parameters -----
+    paramsFile = params;
 
-            figure; plot(squeeze(nirs.dcAvg(:,1,:,2)))
-            
-        catch
-            fprintf(strcat('Could not run analysis - look into manually.\n'))
-        end
+    try
     
+        % ------ load/get .nirs data in ndot file form -------
+        data = analysisTools.getNdotFile(matchingFiles{nsub});
+        
+        % -------- Get data-dependent values and parameters ---------
+        %for viewing preprocessed data & image recon/spectroscopy
+        lmdata = logmean(data.d);
+        % define number of samples in block (defaults given above as a backup)
+%         if isfield(data.info, 'paradigmFull') && isfield(data.info.paradigmFull, 'tHRF')
+%             zeroLoc = find(data.info.paradigmFull.tHRF == 0);
+%             paramsFile.dtPre = zeroLoc-1;
+%             paramsFile.dtAfter = size(data.info.paradigmFull.tHRF,2)-paramsFile.dtPre;
+%         end
+        % measurements to include when plotting
+        paramsFile.keep = data.info.pairs.r3d < paramsFile.maxChannelDistance & data.info.MEAS.GI; 
+        % Get cap name 
+        paramsFile.capName = analysisTools.getInfantCap(capCSV, capNames, paramsFile.timepoint, matchingFiles{nsub});
+        
+        % -------- View processed data -----------
+        %analysisTools.viewProcessedData(lmdata, data.info, paramsFile);
+
+        lmdata = lowpass(lmdata, params.lpCutoff, data.info.system.framerate);                     % Low Pass Filter (0.5 Hz)
+        
+        % ------- Calculate block averaged data ----------
+        [badata, ~, ~, ~, tKeep] = analysisTools.adaptedBlockAverage(lmdata, paramsFile, data.info);
+        
+        % ------- View block averaged data ---------
+        analysisTools.viewBlockAveraged(badata, paramsFile);
+    catch
     end
 end
-
-%% TESTING
-
-

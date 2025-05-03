@@ -7,7 +7,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '06'; %'01', '06' or '12'
+params.timepoint = '01'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
@@ -19,23 +19,23 @@ params.parentDir = fullfile(driveName, 'dot');
 params.preProcDir = 'standard'; 
 % directory for (statistical) outputs
 params.outputDir = fullfile(params.parentDir, 'derivatives'); %Output Directory for files
-%cap info for each participant, in .csv format
-capCSV = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/cappingData.csv'; 
 
 %Light and parcel sensitivity thresholds for overlap
 params.lightSensitivityMin = 0.05; %light
 params.parcPercentMin = 0.5; % min. voxel coverage %age of parcels required, as a decimal
 
-% ---------- Constant parameters -------------
+% ---------- Constant parameters - no need to change -------------
 % cap names corresponding to info in capCSV file
-capNames = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/capNames.csv'; % DOESN'T CHANGE
+capNames = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/capNames.csv';
+%cap info for each participant, in .csv format
+capCSV = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/cappingData.csv'; 
 % directory with Jacobians (A matrices) and PADs fitted to age-specific
 % head models
 jacobianDir=fullfile(driveName, 'imageRecon/neurodot/Jacobians/');
 % maximum channel distance to analyse
-params.maxChannelDistance = 45; % Frijia et al (2021)
+params.maxChannelDistance = 20; % Frijia et al (2021): 45
 % Block averaging
-params.dtPre = 40; % start
+params.dtPre = 45; % start
 params.dtAfter = 190; % finish
 % Plotslices
 params.PD=1;
@@ -69,7 +69,7 @@ end
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 1%[7,27,28,40,49,56,66]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = 1%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     [~, name, ~] = fileparts(matchingFiles{nsub});
     fprintf(strcat('\nAnalysing file: ', name, '\n'))
@@ -81,7 +81,6 @@ for nsub = 1%[7,27,28,40,49,56,66]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 1
     
         % ------ load/get .nirs data in ndot file form -------
         data = analysisTools.getNdotFile(matchingFiles{nsub});
-        %data = analysisTools.getNdotFile('/Volumes/G-DRIVE ArmorATD/dot/nirs/sub-087k/ses-01/nirs/sub-087k_ses-01_task-hand_run-01.nirs');
         
         % -------- Get data-dependent values and parameters ---------
         %for viewing preprocessed data & image recon/spectroscopy
@@ -184,9 +183,9 @@ for nsub = 1%[7,27,28,40,49,56,66]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 1
         end
         
         % ---------- Obtain block data for each parcel ----------
-        parcelBlockAveraged = cell(data.info.io.Nwl,1); %should be 2*1
+        parcelBlockData = cell(data.info.io.Nwl,1); %should be 2*1
         for iLambda = 1:numel(fieldnames(parcelsSens))
-            [parcelBlockAveraged{iLambda}, paramsFile] = analysisTools.getParcelAverageBlock(parcelAveraged, data.info, paramsFile);
+            [parcelBlockData{iLambda}, paramsFile] = analysisTools.getParcelAverageBlock(parcelAveraged, data.info, paramsFile);
         end
         
         % ---------- Get trial numbers ------------
@@ -210,7 +209,7 @@ for nsub = 1%[7,27,28,40,49,56,66]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 1
         
         % ---------- Join parcel data ____________
         parcelData = struct;
-        parcelData.blockData = parcelBlockAveraged;
+        parcelData.blockData = parcelBlockData;
         parcelData.trialNumbers = trialNumbers;
         parcelData.parcelNumbers = parcelNumbers;
         parcelData.capName = paramsFile.capName;

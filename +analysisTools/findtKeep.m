@@ -8,6 +8,9 @@ dims = size(data_in); %'data': (channels)*(sample points)
 Nt = dims(end); % last sample point - Assumes time is always the last dimension.
 NDtf = (ndims(data_in) > 2); % sets to one if data >2 dimensional (needs transforming)
 
+% account for different sampling frequencies
+dtPre = floor(params.dtPre*(info.system.framerate/10)); 
+dtAfter = floor(params.dtAfter*(info.system.framerate/10));
 
 %% N-D Input (for 3-D or N-D voxel spaces).
 if NDtf
@@ -30,8 +33,8 @@ if ~exist('Tkeep','var')
         negStims = [samplepoints, channels];
         negStims = sortrows(negStims);
 
-        %select negative stim markers corresponding to pulse/stimulus for
-        %averaging
+        %select negative stim markers corresponding to non-baseline 
+        % pulse/stimulus
         pulseRows = ismember(negStims(:,1), info.paradigmFull.synchpts(pulse));
         negLocs = negStims(pulseRows, :);
         
@@ -40,10 +43,9 @@ if ~exist('Tkeep','var')
             stimTime = negLocs(i, 1);  % stimulus time
             stimChan = negLocs(i, 2);  % channel
             % Set start & ensure index is within bounds
-            startRow = max(stimTime, 1);   % Ensure index is within bounds
+            startRow = max(stimTime, 1);   
             % Set end & ensure index is within bounds
-            % ('- params.dtPre' ensures doesn't run into next block)
-            endRow = min(stimTime + params.dtAfter - params.dtPre, size(data_in, 1)); 
+            endRow = min(stimTime + dtAfter, size(data_in, 1)); 
             % Set the specified column (channel) to zero in the selected range
             Tkeep(stimChan, startRow:endRow) = 0;
         end

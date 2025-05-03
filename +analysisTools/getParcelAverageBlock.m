@@ -38,12 +38,12 @@ function [parcelBlockAveragedChrom, params] = getParcelAverageBlock(parcelAverag
         
         %initialise storage for this chromophore
         numParcels = size(parcelAveraged{iChrom}, 1);
-        parcelBlockAveragedChrom = zeros(numParcels, numBlocks, (dtPre+dtAfter+1));
+        parcelBlockAveragedChrom = zeros(numParcels, numBlocks, (dtAfter+1));
     
         for iParc = 1:numParcels
             for iBlock = 1:numBlocks
                 if allPulses(iBlock)-dtPre >= 1 && allPulses(iBlock)+dtAfter <= size(parcelData, 2)
-                    parcelBlockAveragedChrom(iParc, iBlock, :) = parcelData(iParc, allPulses(iBlock)-dtPre:allPulses(iBlock)+dtAfter);
+                    parcelBlockAveragedChrom(iParc, iBlock, :) = parcelData(iParc, allPulses(iBlock):allPulses(iBlock)+dtAfter);
                 else
                     params.blockRemoved = iBlock; %will either be first or last
                 end

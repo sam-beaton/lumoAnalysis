@@ -161,7 +161,9 @@ function data = adaptedNirs2ndot(filename, save_file, output)
         % do nothing; very unlikely, but in case there are no retained
         % stims for *any* channel
     else
-        %store channel stim info for within-channel block avg.
+        %store general stim info
+        info.paradigmFull.s = nirsData.s;
+        %store channel-specific stim info
         info.paradigmFull.sCh = nirsData.sCh;
         
         % Populate Pulse fields and synchtype for complete paradigm
