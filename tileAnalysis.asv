@@ -94,8 +94,8 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         end
 
         % ---------- Get tile-averaged block data -------------
-        [tileBlockData, tileNumbers] = analysisTools.getTileBlockData(channelBlockData, sourceNumbers, detectorNumbers, paramsFile);
-
+        [tileBlockData, tileNumbers] = analysisTools.getTileBlockData(channelBlockData, sourceNumbers, detectorNumbers, paramsFile)
+        
         % ---------- Join channel data ____________
         channelData = struct;
         channelData.blockData = channelBlockData;
@@ -106,8 +106,8 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
         % --------- Join tile data -----------
         tileData = struct;
-        tileData.blockData = tileBlockData; %unfinished
-        tileData.tileNumbers = tileNumbers; % unfinished
+        tileData.blockData = tileBlockData;
+        tileData.tileNumbers = tileN
         tileData.trialNumbers = trialNumbers;
         tileData.capName = paramsFile.capName;
         
