@@ -89,7 +89,7 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         
         % check all blocks were used i.e. weren't too close to 
         % ends of recording
-        if isfield(paramsFile, 'blockRemoved')
+        if ~isempty(paramsFile.blockRemoved)
             trialNumbers(paramsFile.blockRemoved) = []; %removes unused trial number (1st or last)
         end
         

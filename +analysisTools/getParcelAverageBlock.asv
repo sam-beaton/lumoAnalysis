@@ -43,9 +43,7 @@ function [parcelBlockAveragedChrom, params] = getParcelAverageBlock(parcelAverag
     
         for iParc = 1:numParcels
             for iBlock = 1:numBlocks
-                %unnecessary after removing pulses in chopBlocks but kept
-                %in for second check layer:
-                if allPulses(iBlock)-dtPre >= 1 && allPulses(iBlock)+dtAfter <= size(parcelData, 2) 
+                if allPulses(iBlock)-dtPre >= 1 && allPulses(iBlock)+dtAfter <= size(parcelData, 2) %unnecessary after removing pulses in chopBlocks but kept in for second check layer
                     parcelBlockAveragedChrom(iParc, iBlock, :) = parcelData(iParc, allPulses(iBlock):allPulses(iBlock)+dtAfter);
                 else
                     params.blockRemoved = iBlock; %will either be first or last

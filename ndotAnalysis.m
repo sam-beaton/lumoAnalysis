@@ -33,7 +33,7 @@ capCSV = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Docume
 % head models
 jacobianDir=fullfile(driveName, 'imageRecon/neurodot/Jacobians/');
 % maximum channel distance to analyse
-params.maxChannelDistance = 20; % Frijia et al (2021): 45
+params.maxChannelDistance = 45; % Frijia et al (2021): 45
 % Block averaging
 params.dtPre = 45; % start
 params.dtAfter = 190; % finish
