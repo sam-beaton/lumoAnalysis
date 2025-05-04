@@ -112,7 +112,7 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         tileData.capName = paramsFile.capName;
         
         % ---------- Save variables ----------
-        analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, [], [], [], channelData);
+        analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, [], [], [], channelData, tileData);
         
     catch
         fprintf(strcat('Could not run analysis - look into manually.\n'))

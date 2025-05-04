@@ -1,4 +1,4 @@
-function saveFiles(params, nirsFile, parcelData, cortexHb, cortexMuA, channelData)
+function saveFiles(params, nirsFile, parcelData, cortexHb, cortexMuA, channelData, tileData)
 
 % Save outputs of nDotAnalysis.m
 

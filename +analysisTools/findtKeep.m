@@ -45,7 +45,7 @@ if ~exist('Tkeep','var')
             % Set start & ensure index is within bounds
             startRow = max(stimTime, 1);   
             % Set end & ensure index is within bounds
-            endRow = min(stimTime + dtAfter, size(data_in, 1)); 
+            endRow = min(stimTime + dtAfter, size(data_in, 2)); 
             % Set the specified column (channel) to zero in the selected range
             Tkeep(stimChan, startRow:endRow) = 0;
         end

@@ -69,7 +69,7 @@ end
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 1%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = 10:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     [~, name, ~] = fileparts(matchingFiles{nsub});
     fprintf('\nAnalysing file %d: %s\n', nsub, name);
@@ -85,12 +85,6 @@ for nsub = 1%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         % -------- Get data-dependent values and parameters ---------
         %for viewing preprocessed data & image recon/spectroscopy
         lmdata = logmean(data.d);
-        % define number of samples in block (defaults given above as a backup)
-%         if isfield(data.info, 'paradigmFull') && isfield(data.info.paradigmFull, 'tHRF')
-%             zeroLoc = find(data.info.paradigmFull.tHRF == 0);
-%             paramsFile.dtPre = zeroLoc-1;
-%             paramsFile.dtAfter = size(data.info.paradigmFull.tHRF,2)-paramsFile.dtPre;
-%         end
         % measurements to include when plotting
         paramsFile.keep = data.info.pairs.r3d < paramsFile.maxChannelDistance & data.info.MEAS.GI; 
         % Get cap name 
@@ -100,10 +94,10 @@ for nsub = 1%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         %analysisTools.viewProcessedData(lmdata, data.info, paramsFile);
         
         % ------- Calculate block averaged data ----------
-        [badata, ~, ~, ~, tKeep] = analysisTools.adaptedBlockAverage(lmdata, paramsFile, data.info);
+        %[badata, ~, ~, ~, tKeep] = analysisTools.adaptedBlockAverage(lmdata, paramsFile, data.info);
         
         % ------- View block averaged data ---------
-        analysisTools.viewBlockAveraged(badata, paramsFile);
+        %analysisTools.viewBlockAveraged(badata, paramsFile);
 
         % ------- Find tKeep (useful if not running block average) --------
         tKeep = analysisTools.findtKeep(lmdata, paramsFile, data.info);
@@ -124,7 +118,10 @@ for nsub = 1%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         jacob = analysisTools.reshapeJacob(jacob);
         
         % Remove all values from excluded blocks in the reconstruction data
-        tKeep = analysisTools.scrubKeepBlocks(tKeep, paramsFile);
+        tKeepCheck = tKeep;
+        tKeep = analysisTools.scrubKeepBlocks(tKeep, paramsFile, data.info);
+        tKeepCheck = (tKeep == tKeepCheck);
+        find(tKeepCheck ~= 1)
         lmdata = lmdata.*tKeep;
         
         % Perform image reconstruction
