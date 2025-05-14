@@ -1,5 +1,5 @@
 
-function [parcelBlockAveraged, params] = getParcelAverageBlock(parcelAveraged, info, params)
+function [parcelBlockAveragedChrom, params] = getParcelAverageBlock(parcelAveraged, info, params)
 
 % Calculates the parcel-wise block average of the task data for each
 % chromophore, using the parcel-wise average (parcelAveraged) full time

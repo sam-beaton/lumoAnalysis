@@ -52,8 +52,9 @@ function [channelBlockData, sourceNumbers, detectorNumbers, params] = getChannel
             for pulseSample = 1:length(pulseSamples')
                 if ~(any(all(negLocs == [pulseSamples(pulseSample), hboChans(chan)], 2)))
                     hboData(chan, pulseSample, :) = dataIn(hboChans(chan), pulseSamples(pulseSample)-dtPre:pulseSamples(pulseSample)+dtAfter);
+                    hboData(chan, pulseSample, :) = hboData(chan, pulseSample, :) - hboData(chan, pulseSample, dtPre+1);
                 else
-                    hboData(chan, pulseSample, :) = -101;
+                    hboData(chan, pulseSample, :) = NaN;
                 end
             end
         end
@@ -62,8 +63,9 @@ function [channelBlockData, sourceNumbers, detectorNumbers, params] = getChannel
             for pulseSample = 1:length(pulseSamples')
                 if ~(any(all(negLocs == [pulseSamples(pulseSample), hbrChans(chan)], 2)))
                     hbrData(chan, pulseSample, :) = dataIn(hbrChans(chan), pulseSamples(pulseSample)-dtPre:pulseSamples(pulseSample)+dtAfter);
+                    hbrData(chan, pulseSample, :) = hbrData(chan, pulseSample, :) - hbrData(chan, pulseSample, dtPre+1);
                 else
-                    hbrData(chan, pulseSample, :) = -101;
+                    hbrData(chan, pulseSample, :) = NaN;
                 end
             end
         end

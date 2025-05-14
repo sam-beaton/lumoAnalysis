@@ -3,16 +3,16 @@ clear all, close all;
 % Toolbox paths
 addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT-main')); %neurodot toolbox
 addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NIRFASTer')); %nirfast toolbox for meshing - remove? only needed if generating meshes
-addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %contains edited functions where necessary for use in image recon
+addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %contains edited functions where necessary for use in image recon
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '01'; %'01', '06' or '12'
+params.timepoint = '12'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
 driveName = '/Volumes/Extreme SSD/';
-
+    
 %overarching directory containing .nirs files
 params.parentDir = fullfile(driveName, 'dot');
 %processing method (%suffix after 'preproc-' in derivatives folder)
@@ -61,7 +61,7 @@ end
 % Age-specific cortical parcellation
 if ~exist('maskParc', 'var')
     [maskParc,infoParc]=LoadVolumetricData([strcat(params.timepoint,'mo_Parc_Reg_Head')], ...
-        fullfile(driveName, strcat('mri/registered/UNC_to_NeuroDev/No Mask/', params.timepoint, 'mo')), ...
+        fullfile('/Users/sambe/TEMPSTORAGE/', strcat('mri/registered/UNC_to_NeuroDev/No Mask/', params.timepoint, 'mo')), ...
         'nii.gz');
 end
 
@@ -69,7 +69,7 @@ end
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 10:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     [~, name, ~] = fileparts(matchingFiles{nsub});
     fprintf('\nAnalysing file %d: %s\n', nsub, name);
@@ -118,10 +118,6 @@ for nsub = 10:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         jacob = analysisTools.reshapeJacob(jacob);
         
         % Remove all values from excluded blocks in the reconstruction data
-        tKeepCheck = tKeep;
-        tKeep = analysisTools.scrubKeepBlocks(tKeep, paramsFile, data.info);
-        tKeepCheck = (tKeep == tKeepCheck);
-        find(tKeepCheck ~= 1)
         lmdata = lmdata.*tKeep;
         
         % Perform image reconstruction
@@ -180,10 +176,7 @@ for nsub = 10:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         end
         
         % ---------- Obtain block data for each parcel ----------
-        parcelBlockData = cell(data.info.io.Nwl,1); %should be 2*1
-        for iLambda = 1:numel(fieldnames(parcelsSens))
-            [parcelBlockData{iLambda}, paramsFile] = analysisTools.getParcelAverageBlock(parcelAveraged, data.info, paramsFile);
-        end
+        [parcelBlockData, paramsFile] = analysisTools.getParcelAverageBlock(parcelAveraged, data.info, paramsFile);
         
         % ---------- Get trial numbers ------------
         trialNumbers = analysisTools.getTrialNumbers(data.info);

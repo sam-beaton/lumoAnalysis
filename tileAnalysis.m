@@ -3,11 +3,11 @@ clear all, close all;
 % Toolbox paths
 addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT-main')); %neurodot toolbox
 addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NIRFASTer')); %nirfast toolbox for meshing - remove? only needed if generating meshes
-addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %contains edited functions where necessary for use in image recon
+addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %contains edited functions where necessary for use in image recon
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '01'; %'01', '06' or '12'
+params.timepoint = '12'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
@@ -42,7 +42,7 @@ params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', pa
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = [37, 38, 63, 64]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     [~, name, ~] = fileparts(matchingFiles{nsub});
     fprintf('\nAnalysing file %d: %s\n', nsub, name);
@@ -72,6 +72,12 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         
         % ------- View block averaged data ---------
         %analysisTools.viewBlockAveraged(badata, paramsFile);
+
+        %%%%%%%%%%%%% TEST %%%%%%%%%%%%%%%%%
+        %lmdata = lowpass(lmdata, 0.1, data.info.system.framerate);
+        %[badata, ~, ~, ~, tKeep] = analysisTools.adaptedBlockAverage(lmdata, paramsFile, data.info);
+        %analysisTools.viewBlockAveraged(badata, paramsFile);
+        %%%%%%%%%%%%% TEST %%%%%%%%%%%%%%%%%
         
         % ---------- Obtain block data for each channel ----------
         [channelBlockData, sourceNumbers, detectorNumbers, paramsFile] = analysisTools.getChannelBlockData(data.dc, data.info, paramsFile);

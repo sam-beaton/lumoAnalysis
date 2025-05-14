@@ -23,8 +23,8 @@ function [tileBlockData, tileNumbers] = getTileBlockData(channelBlockData, srcNu
         bothInTileHbR = ismember(srcNums{1,2}, tileSources) & ismember(detNums{1,2}, tileDetectors);
 
         for blockNum = 1:size(channelBlockData{1}, 2)
-            hboData(tileIdx, blockNum, :) = nanmean(channelBlockData{1}(bothInTileHbO, blockNum, :));
-            hbrData(tileIdx, blockNum, :) = nanmean(channelBlockData{2}(bothInTileHbR, blockNum, :));
+            hboData(tileIdx, blockNum, :) = mean(channelBlockData{1}(bothInTileHbO, blockNum, :), 'omitnan');
+            hbrData(tileIdx, blockNum, :) = mean(channelBlockData{2}(bothInTileHbR, blockNum, :), 'omitnan');
         end
 
     end

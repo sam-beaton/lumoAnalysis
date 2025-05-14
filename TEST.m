@@ -1,112 +1,54 @@
-%% Initialise and load toolboxes
-clear all, close all;
-% Toolbox paths
-addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT-main')); %neurodot toolbox
-addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NIRFASTer')); %nirfast toolbox for meshing - remove? only needed if generating meshes
-addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %contains edited functions where necessary for use in image recon
+rootDir = '/Volumes/Extreme SSD/dot/derivatives/parcelHb';
+matFiles = dir(fullfile(rootDir, '**', '*.mat'));  % Recursively get all .mat files
 
-%% Pathing and parameters
-% ---------- User-defined parameters ------------
-params.timepoint = '06'; %'01', '06' or '12'
-params.task = 'hand'; %'hand', 'fc1' or 'fc2'
+% Convert to full paths
+matFiles = matFiles(~startsWith({matFiles.name}, '.'));  % Omit hidden files like .DS_Store
+matFilesFullPath = fullfile({matFiles.folder}, {matFiles.name});
 
-%storage drive - easier than changing all names all the time
-driveName = '/Volumes/Extreme SSD/';
-
-%overarching directory containing .nirs files
-params.parentDir = fullfile(driveName, 'dot');
-%processing method (%suffix after 'preproc-' in derivatives folder)
-params.preProcDir = 'standard'; 
-% directory for (statistical) outputs
-params.outputDir = fullfile(params.parentDir, 'derivatives'); %Output Directory for files
-
-%Light and parcel sensitivity thresholds for overlap
-params.lightSensitivityMin = 0.05; %light
-params.parcPercentMin = 0.5; % min. voxel coverage %age of parcels required, as a decimal
-
-% maximum channel distance to analyse
-params.maxChannelDistance = 45; % Frijia et al (2021): 45
-
-% ---------- Constant parameters - no need to change -------------
-% cap names corresponding to info in capCSV file
-capNames = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/capNames.csv';
-%cap info for each participant, in .csv format
-capCSV = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/cappingData.csv'; 
-% directory with Jacobians (A matrices) and PADs fitted to age-specific
-% head models
-jacobianDir=fullfile(driveName, 'imageRecon/neurodot/Jacobians/');
-% Block averaging
-params.dtPre = 45; % start
-params.dtAfter = 190; % finish
-% Plotslices
-params.PD=1;
-params.Scale=1;
-params.Th.P=5e-2;
-params.Th.N=-params.Th.P;
-params.TC = 1; %use true color mapping
-params.cbmode = 0; %use custom colorbar limits
-params.Cmap.P = colorcube; %use custom colormap
-
-% ---------- Derivative parameters -------------
-%data location task and age dependant
-params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', params.preProcDir));
-
-% ---------- Load files needed for all iterations of the loop ----------
-% Age-specific head segmentation
-if ~exist('maskSeg', 'var')
-    [maskSeg,infoSeg]=LoadVolumetricData([strcat(params.timepoint,'_0Months3T_head_segVol')], ...
-        fullfile(driveName, strcat('imageRecon/neurodot/Segmentations/', params.timepoint,'mo')), ...
-        'nii');
-end
-
-% Age-specific cortical parcellation
-if ~exist('maskParc', 'var')
-    [maskParc,infoParc]=LoadVolumetricData([strcat(params.timepoint,'mo_Parc_Reg_Head')], ...
-        fullfile(driveName, strcat('mri/registered/UNC_to_NeuroDev/No Mask/', params.timepoint, 'mo')), ...
-        'nii.gz');
-end
-
-%% Search for task files 
-matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
-
-% Run Analysis
-for nsub = [1, 2, 3, 4, 6, 7]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
-
-    [~, name, ~] = fileparts(matchingFiles{nsub});
-    fprintf(strcat('\nAnalysing file: ', name, '\n'))
-
-    % ------ Reset file-specific parameters -----
-    paramsFile = params;
-
-    try
+for i = 1:length(matFilesFullPath)
+    filePath = matFilesFullPath{i};
+    load(filePath);  % Assumes variable 'parcelData' is loaded
     
-        % ------ load/get .nirs data in ndot file form -------
-        data = analysisTools.getNdotFile(matchingFiles{nsub});
+    % Display which file is being loaded
+    fprintf('Loaded file %d of %d: %s\n', i, length(matFilesFullPath), filePath);
+    
+    % Start a new, larger figure for each file
+    fig = figure('Position', [100, 100, 1200, 600]);
+    hold on;
+    
+    % Get number of parcels
+    nParcels = size(parcelData.blockData{1}, 1);
+    nTimepoints = size(parcelData.blockData{1}, 3);
+    nBlocks = size(parcelData.blockData{1}, 2);
+    
+    for iParc = 1:nParcels
+        % Get mean data for this parcel (averaged across blocks)
+        parcelMean = squeeze(mean(parcelData.blockData{1}(iParc, :, :)));
         
-        % -------- Get data-dependent values and parameters ---------
-        %for viewing preprocessed data & image recon/spectroscopy
-        lmdata = logmean(data.d);
-        % define number of samples in block (defaults given above as a backup)
-%         if isfield(data.info, 'paradigmFull') && isfield(data.info.paradigmFull, 'tHRF')
-%             zeroLoc = find(data.info.paradigmFull.tHRF == 0);
-%             paramsFile.dtPre = zeroLoc-1;
-%             paramsFile.dtAfter = size(data.info.paradigmFull.tHRF,2)-paramsFile.dtPre;
-%         end
-        % measurements to include when plotting
-        paramsFile.keep = data.info.pairs.r3d < paramsFile.maxChannelDistance & data.info.MEAS.GI; 
-        % Get cap name 
-        paramsFile.capName = analysisTools.getInfantCap(capCSV, capNames, paramsFile.timepoint, matchingFiles{nsub});
+        % Mean-center: subtract mean
+        parcelMeanCentered = parcelMean - mean(parcelMean, 'omitnan');
         
-        % -------- View processed data -----------
-        %analysisTools.viewProcessedData(lmdata, data.info, paramsFile);
-
-        lmdata = lowpass(lmdata, params.lpCutoff, data.info.system.framerate);                     % Low Pass Filter (0.5 Hz)
+        % Plot mean-centered data
+        plot(parcelMeanCentered);
         
-        % ------- Calculate block averaged data ----------
-        [badata, ~, ~, ~, tKeep] = analysisTools.adaptedBlockAverage(lmdata, paramsFile, data.info);
-        
-        % ------- View block averaged data ---------
-        analysisTools.viewBlockAveraged(badata, paramsFile);
-    catch
+        % Now also update *all blocks* to be mean-centered
+        for iBlock = 1:nBlocks
+            originalData = parcelData.blockData{1}(iParc, iBlock, :);
+            meanCenteredData = originalData - mean(originalData, 'omitnan');
+            parcelData.blockData{1}(iParc, iBlock, :) = meanCenteredData;
+        end
     end
+    
+    hold off;
+    title(sprintf('File %d: %s', i, matFiles(i).name), 'Interpreter', 'none');
+    xlabel('Time points');
+    ylabel('Mean-centered Signal');
+    legend(arrayfun(@(x) sprintf('Parcel %d', x), 1:nParcels, 'UniformOutput', false));
+    
+    % Close the figure
+    close(fig);
+    
+    % Save back to the same .mat file (overwrites the file)
+    save(filePath, 'parcelData');  % Use -v7.3 if data is large
+    fprintf('Saved mean-centered data back to: %s\n', filePath);
 end
