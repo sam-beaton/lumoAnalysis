@@ -31,8 +31,8 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 
 % User-set file params
 %%% Change where necessary
-timePoint = '01'; %age of infant: '01', '06' or '12'
-padname='GA00274'; %name of JSON file containing array info
+timePoint = '12'; %age of infant: '01', '06' or '12'
+padname='GA00440'; %name of JSON file containing array info
 arrayPositionAltered = 0;
 arrayPosition = 'R';
 driveName = '/Volumes/Extreme SSD/'; %storage drive - easier than changing all names all the time
@@ -644,7 +644,7 @@ flags.gridname=gridname;
 flags.meshname=hdmeshname;
 flags.head='info';
 flags.info=infoT1;                                   % Your T1 info file
-flags.gthresh=1e-5;                                  % Voxelation threshold in G
+flags.gthresh=1e-3;                                  % Voxelation threshold in G
 flags.voxmm=2;                                       % Voxelation resolution (mm)
 flags.labels.r1='csf';                               % Regions for optical properties
 flags.labels.r2='white';
@@ -667,9 +667,9 @@ flags.op.n_bone=[1.4,1.4];
 flags.op.n_csf=[1.4,1.4];
 flags.op.n_gray=[1.4,1.4];
 flags.op.n_white=[1.4,1.4];
-flags.srcnum=Ns;
+flags.srcnum=size(info.optodes.spos3,1);
 % Get affine matrix that can be used to transform FROM participant space TO MNI space
-if isfield(ds.dO, 'affineTform') %if mesh scaled, affineTform field will exist, save it to workspace
+if exist('ds', 'var') && isfield(ds.dO, 'affineTform') %if mesh scaled, affineTform field will exist, save it to workspace
     affine_Subj2MNI = [ds.dO.affineTform, zeros(3,1)];
     save('affine_matrix_Subject_to_MNI.mat', 'affine_Subj2MNI')
 else %otherwise, set affine_Subj2MNI to eye(4)

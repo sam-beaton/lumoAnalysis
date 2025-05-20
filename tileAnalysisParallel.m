@@ -16,7 +16,7 @@ driveName = '/Volumes/Extreme SSD/';
 %overarching directory containing .nirs files
 params.parentDir = fullfile(driveName, 'dot');
 %processing method (%suffix after 'preproc-' in derivatives folder)
-params.preProcDir = '015LPF'; 
+params.preProcDir = 'TEST025'; 
 % directory for (statistical) outputs
 params.outputDir = fullfile(params.parentDir, 'derivatives'); %Output Directory for files
 
