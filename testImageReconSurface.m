@@ -105,7 +105,6 @@ for nsub = 1%1length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         %analysisTools.viewProcessedData(lmdata, data.info, paramsFile);
         
         % ------- Calculate block averaged data ----------
-
         badata = BlockAverage(lmdata, data.info.paradigm.synchpts(data.info.paradigm.Pulse_2), floor((data.info.system.framerate/10)*paramsFile.dtAfter));
         badata=bsxfun(@minus,badata,mean(badata(:,1:4),2));
         
