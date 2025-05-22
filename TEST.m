@@ -105,20 +105,19 @@ for nsub = 1%1length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         %analysisTools.viewProcessedData(lmdata, data.info, paramsFile);
         
         % ------- Calculate block averaged data ----------
-
-        badata = BlockAverage(lmdata, data.info.paradigm.synchpts(data.info.paradigm.Pulse_2), floor((data.info.system.framerate/10)*paramsFile.dtAfter));
-        badata=bsxfun(@minus,badata,mean(badata(:,1:4),2));
+%         badata = BlockAverage(lmdata, data.info.paradigm.synchpts(data.info.paradigm.Pulse_2), floor((data.info.system.framerate/10)*paramsFile.dtAfter));
+%         badata=bsxfun(@minus,badata,mean(badata(:,1:4),2));
         
         % ------- View block averaged data ---------
-        figure('Position',[100 100 550 780])
-        subplot(2,1,1); plot(badata(paramsFile.keep,:)'); 
-        set(gca,'XLimSpec','tight'), xlabel('Time (samples)'), 
-        ylabel('log(\phi/\phi_0)') 
-        m=max(max(abs(badata(paramsFile.keep,:))));
-        subplot(2,1,2); imagesc(badata(paramsFile.keep,:),[-1,1].*m); 
-        colorbar('Location','northoutside');
-        xlabel('Time (samples)');   
-        ylabel('Measurement #')
+%         figure('Position',[100 100 550 780])
+%         subplot(2,1,1); plot(badata(paramsFile.keep,:)'); 
+%         set(gca,'XLimSpec','tight'), xlabel('Time (samples)'), 
+%         ylabel('log(\phi/\phi_0)') 
+%         m=max(max(abs(badata(paramsFile.keep,:))));
+%         subplot(2,1,2); imagesc(badata(paramsFile.keep,:),[-1,1].*m); 
+%         colorbar('Location','northoutside');
+%         xlabel('Time (samples)');   
+%         ylabel('Measurement #')
 
         % ------- View block averaged data ---------
         %analysisTools.viewBlockAveraged(badata, paramsFile);
@@ -160,15 +159,39 @@ for nsub = 1%1length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         %fprintf('Performing Spectroscopy\n') 
         cortexHb = analysisTools.adaptedSpectroscopy_img(cortexMuA, E);
 
-        
-        
         %fprintf('Creating derivative chromophore matrices\n') 
         % Variables below needed? can just pass them as written.
         cortexHbO = cortexHb(:, :, 1);
         cortexHbR = cortexHb(:, :, 2);
         %cortexHbT = cortexHbO + cortexHbR; %total
         %cortexHbD = cortexHbO - cortexHbR; %difference
-            
+        
+        brainmeshLeft = load('/Users/sambe/TEMPSTORAGE/mri/meshes/leftHemisphereMesh01mo.mat'); % loads nodes and faces
+        brainmeshRight = load('/Users/sambe/TEMPSTORAGE/mri/meshes/rightHemisphereMesh01mo.mat'); 
+
+        
+        [cortHbOBlockAvgData,~, ~, cortHbOBlockData] = testFuncs.getParcelAverageBlock( ...
+                                                    cortexHbO, ...
+                                                    allPulses, ...
+                                                    floor((data.info.system.framerate/10)*paramsFile.dtAfter), ...
+                                                    TkeepChrom{1});
+        volData = Good_Vox2vol(cortHbOBlockAvgData(:, 113), jacob.info.tissue.dim);
+        surfData = affine3d_img(volData, jacob.info.tissue.dim, infoSeg);
+        PlotInterpSurfMesh(surfData, brainmeshLeft, brainmeshRight, infoSeg);
+
+        paramsParcel = struct();
+        paramsParcel.ctx = 'flat';  % ensures 'applycmap' uses regions
+        paramsParcel.FaceColor = 'interp';
+        paramsParcel.alpha = 1;
+        paramsParcel.view = 'lat';
+        paramsParcel.Scale = 1;
+        paramsParcel.cmap = colorblindMap;  % apply the colorblind palette
+        paramsParcel.CBar_on = false;       % optional: hide colorbar if not meaningful
+
+        PlotInterpSurfMesh(maskParc, brainmeshLeft, brainmeshRight, infoSeg, paramsParcel);
+        
+        
+        PlotInterpSurfMesh(vertices, faces, mmCoords, vals, 'interp');
     
         % ------- Convert segmentation and parcellation to DOT volume space -------
         % convert segmentation 

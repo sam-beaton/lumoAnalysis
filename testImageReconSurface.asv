@@ -7,7 +7,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '12'; %'01', '06' or '12'
+params.timepoint = '01'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
@@ -73,7 +73,7 @@ end
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = 1%1length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     [~, name, ~] = fileparts(matchingFiles{nsub});
     fprintf('\nAnalysing file %d: %s\n', nsub, name);
@@ -259,7 +259,7 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         end
         allPulses = data.info.paradigm.synchpts(allPulses);
         for iChrom = 1:numel(fieldnames(parcelsSens))
-            [parcelBlockAvgData{iChrom}, ~, ~, parcelBlockData{iChrom}] = testFuncs.getDataAverageBlock( ...
+            [parcelBlockAvgData{iChrom}, ~, ~, parcelBlockData{iChrom}] = testFuncs.getParcelAverageBlock( ...
                                                     parcelAveraged{iChrom}, ...
                                                     allPulses, ...
                                                     floor((data.info.system.framerate/10)*paramsFile.dtAfter), ...
@@ -277,7 +277,7 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         cortexBlockAvgData = cell(data.info.io.Nwl,1);
         cortexHbPeak = cell(data.info.io.Nwl,1);
         for iChrom = 1:numel(fieldnames(parcelsSens))
-            [cortexBlockAvgData{iChrom}, ~, ~, cortexBlockData{iChrom}] = testFuncs.getDataAverageBlock( ...
+            [cortexBlockAvgData{iChrom}, ~, ~, cortexBlockData{iChrom}] = testFuncs.getParcelAverageBlock( ...
                                                     cortexHb(:,:,iChrom), ...
                                                     allPulses, ...
                                                     floor((data.info.system.framerate/10)*paramsFile.dtAfter), ...
@@ -375,7 +375,7 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         parcelData.capName = paramsFile.capName;
         
         % ---------- Save variables ----------
-        analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, parcelData, [], cortexHbPeak);
+        analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, parcelData, cortexHbPeak);
         
     catch
         fprintf(strcat('Could not run analysis - look into manually.\n'))

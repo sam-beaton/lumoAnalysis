@@ -1,42 +1,32 @@
-function [BA_out, BSTD_out, BT_out, blocks] = getParcelAverageBlock(data_in, pulse, dt, Tkeep)
+function [BA_out, BSTD_out, BT_out, blocks] = getDataAverageBlock(data_in, pulse, dt, Tkeep)
 
-% BLOCKAVERAGE Averages data by stimulus blocks.
+% getDataAverageBlock Averages data by stimulus blocks.
 %
-%   data_out = BLOCKAVERAGE(data_in, pulse, dt) takes a data array
-%   "data_in" and uses the pulse and dt information to cut that data 
-%   timewise into blocks of equal length (dt), which are then averaged 
-%   together and output as "data_out".
-% 
-%   Tkeep is a temporal mask. Any time points with a zero in this vector is
-%   set to NaN.
+% GETPARCELAVERAGEBLOCK Extracts stimulus-aligned data blocks and computes statistics.
 %
-% Copyright (c) 2017 Washington University 
-% Created By: Adam T. Eggebrecht
-% Eggebrecht et al., 2014, Nature Photonics; Zeff et al., 2007, PNAS.
+%   Segments time-series data into stimulus-aligned blocks of fixed duration,
+%   computes block-averaged responses, and returns demeaned/normalised outputs.
 %
-% Washington University hereby grants to you a non-transferable, 
-% non-exclusive, royalty-free, non-commercial, research license to use 
-% and copy the computer code that is provided here (the Software).  
-% You agree to include this license and the above copyright notice in 
-% all copies of the Software.  The Software may not be distributed, 
-% shared, or transferred to any third party.  This license does not 
-% grant any rights or licenses to any other patents, copyrights, or 
-% other forms of intellectual property owned or controlled by Washington 
-% University.
-% 
-% YOU AGREE THAT THE SOFTWARE PROVIDED HEREUNDER IS EXPERIMENTAL AND IS 
-% PROVIDED AS IS, WITHOUT ANY WARRANTY OF ANY KIND, EXPRESSED OR 
-% IMPLIED, INCLUDING WITHOUT LIMITATION WARRANTIES OF MERCHANTABILITY 
-% OR FITNESS FOR ANY PARTICULAR PURPOSE, OR NON-INFRINGEMENT OF ANY 
-% THIRD-PARTY PATENT, COPYRIGHT, OR ANY OTHER THIRD-PARTY RIGHT.  
-% IN NO EVENT SHALL THE CREATORS OF THE SOFTWARE OR WASHINGTON 
-% UNIVERSITY BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL, OR 
-% CONSEQUENTIAL DAMAGES ARISING OUT OF OR IN ANY WAY CONNECTED WITH 
-% THE SOFTWARE, THE USE OF THE SOFTWARE, OR THIS AGREEMENT, WHETHER 
-% IN BREACH OF CONTRACT, TORT OR OTHERWISE, EVEN IF SUCH PARTY IS 
-% ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+% INPUTS:
+%   data_in - Input data array with time as the last dimension
+%   pulse   - Vector of stimulus onset times (sample indices)
+%   dt      - Block duration in samples
+%   Tkeep   - Optional temporal mask; false values set corresponding timepoints to NaN
 %
-% See Also: NORMALIZE2RANGE_TTS.
+% OUTPUTS:
+%   BA_out   - Block-averaged responses (demeaned across time)
+%   BSTD_out - Standard deviation across blocks
+%   BT_out   - Normalized block averages (BA_out ./ BSTD_out)
+%   blocks   - Raw extracted blocks [channels x time x blocks]
+%
+% NB:
+%   - Time dimension is assumed to be the last dimension of data_in
+%   - Blocks containing any NaN values are excluded from averaging
+%   - Supports both 2D (channels x time) and N-D input arrays
+%   - Pulses extending beyond data boundaries are handled with NaN padding
+%
+% SLB 22/5/25
+% Edited from BLOCKAVERAGE in the NeuroDOT toolbox
 
 %% Parameters and Initialization.
 dims = size(data_in);
@@ -62,7 +52,7 @@ data_in(:,~Tkeep)=NaN;
 
 %% Cut data into blocks.
 Nm=size(data_in,1);
-blocks=zeros(Nm,dt,Nbl);
+blocks = NaN(Nm, dt, Nbl);
 for k = 1:Nbl
     if (pulse(k) + dt - 1) <= Nt
         % extract the data segment

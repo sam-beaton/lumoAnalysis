@@ -1,8 +1,12 @@
 function trialNumbers = getTrialNumbers(info)
 
-% Returns trial numbers based on paradigmFull info for recording
-
-    synchtypes = info.paradigmFull.synchtype;
+% Returns trial numbers based on paradigmFull/paradigm info for recording
+    
+    if isfield('info', 'paradigmFull')
+        synchtypes = info.paradigmFull.synchtype;
+    else
+        synchtypes = info.paradigm.synchtype;
+    end
     synchtypes = synchtypes(synchtypes ~= 1)';
     % Define expected pattern
     fullPattern = repelem(2:6, 5); % [2,2,2,2,2,3,3,3,3,3,...,6,6,6,6,6]
