@@ -1,4 +1,4 @@
-function saveFiles(params, nirsFile, parcelData, cortexHb, cortexHbPeak, cortexMuA, channelData, tileData)
+function saveFiles(params, nirsFile, parcelData, cortexHb, cortexHbPeak, fooV, cortexMuA, channelData, tileData)
 
 % Save outputs of nDotAnalysis.m
 
@@ -24,6 +24,23 @@ function saveFiles(params, nirsFile, parcelData, cortexHb, cortexHbPeak, cortexM
         save(parcelFileName, 'parcelData');
     end
 
+    if exist('cortexHb', 'var') && ~isempty(cortexHb)
+        cortexHbFileName = strcat(nameParts{1}, '_', nameParts{2}, '_', nameParts{3}, '_', nameParts{4}, '_', 'cortexHb.mat');
+        cortexHbDirectoryName = fullfile(params.outputDir, ...
+            'cortexHb', ...
+            dirParts{size(dirParts, 2)-2}, ...
+            dirParts{size(dirParts, 2)-1}, ...
+            dirParts{size(dirParts, 2)}, ...
+            nameParts{4});
+        cortexHbFileName = fullfile(cortexHbDirectoryName, cortexHbFileName);
+
+        %save cortexHb
+        if ~isfolder(cortexHbDirectoryName)
+            mkdir(cortexHbDirectoryName);
+        end
+        save(cortexHbFileName, 'cortexHb');
+    end
+
     if exist('cortexHbPeak', 'var') && ~isempty(cortexHbPeak)
         cortexHbPeakFileName = strcat(nameParts{1}, '_', nameParts{2}, '_', nameParts{3}, '_', nameParts{4}, '_', 'cortexHbPeak.mat');
         cortexHbPeakDirectoryName = fullfile(params.outputDir, ...
@@ -41,23 +58,23 @@ function saveFiles(params, nirsFile, parcelData, cortexHb, cortexHbPeak, cortexM
         save(cortexHbPeakFileName, 'cortexHbPeak');
     end
 
-
-    if exist('cortexHb', 'var') && ~isempty(cortexHb)
-        cortexHbFileName = strcat(nameParts{1}, '_', nameParts{2}, '_', nameParts{3}, '_', nameParts{4}, '_', 'cortexHb.mat');
-        cortexHbDirectoryName = fullfile(params.outputDir, ...
-            'cortexHb', ...
+    if exist('fooV', 'var') && ~isempty(fooV)
+        fooVFileName = strcat(nameParts{1}, '_', nameParts{2}, '_', nameParts{3}, '_', nameParts{4}, '_', 'fooV.mat');
+        fooVDirectoryName = fullfile(params.outputDir, ...
+            'fooV', ...
             dirParts{size(dirParts, 2)-2}, ...
             dirParts{size(dirParts, 2)-1}, ...
             dirParts{size(dirParts, 2)}, ...
             nameParts{4});
-        cortexHbFileName = fullfile(cortexHbDirectoryName, cortexHbFileName);
+        fooVFileName = fullfile(fooVDirectoryName, fooVFileName);
 
         %save cortexHb
-        if ~isfolder(cortexHbDirectoryName)
-            mkdir(cortexHbDirectoryName);
+        if ~isfolder(fooVDirectoryName)
+            mkdir(fooVDirectoryName);
         end
-        save(cortexHbFileName, 'cortexHb');
+        save(fooVFileName, 'fooV');
     end
+
     
     if exist('cortexMuA', 'var') && ~isempty(cortexMuA)
         cortexMuaFileName = strcat(nameParts{1}, '_', nameParts{2}, '_', nameParts{3}, '_', nameParts{4}, '_', 'cortexMuA.mat');

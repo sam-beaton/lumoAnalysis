@@ -13,8 +13,8 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 %%% Change where necessary
 timePoint = '12'; %age of infant: '01', '06' or '12'
 padname='GA00440'; %name of JSON file containing array info
-arrayPositionAltered = 1;
-arrayPosition = 'U';
+arrayPositionAltered = 0;
+arrayPosition = 'L';
 driveName = '/Volumes/Extreme SSD/'; %storage drive - easier than changing all names all the time
 meshDir = fullfile(driveName, 'imageRecon/neurodot/Meshes/');
 outputDir = fullfile(driveName, 'imageRecon/neurodot/Jacobians/');
@@ -68,27 +68,34 @@ flags.head='info';
 flags.info=infoT1;                                   % Your T1 info file
 flags.gthresh=1e-3;                                  % Voxelation threshold in G
 flags.voxmm=2;                                       % Voxelation resolution (mm)
-flags.labels.r1='csf';                               % Regions for optical properties
-flags.labels.r2='white';
-flags.labels.r3='gray';
-flags.labels.r4='bone';
-flags.labels.r5='skin';
-flags.op.lambda=[750,850];                           % Wavelengths (nm)
-flags.op.mua_skin=[0.0170,0.0190];                   % Baseline absorption
-flags.op.mua_bone=[0.0116,0.0139];
-flags.op.mua_csf=[0.0040,0.0040];
-flags.op.mua_gray=[0.0180,0.0192];
-flags.op.mua_white=[0.0167,0.0208];
-flags.op.musp_skin=[0.74,0.64];                      % Baseline reduced scattering coeff
-flags.op.musp_bone=[0.94,0.84];
-flags.op.musp_csf=[0.3,0.3];
-flags.op.musp_gray=[0.8359,0.6726];
-flags.op.musp_white=[1.1908,1.0107];
-flags.op.n_skin=[1.4,1.4];                           % Index of refraction
-flags.op.n_bone=[1.4,1.4];
-flags.op.n_csf=[1.4,1.4];
-flags.op.n_gray=[1.4,1.4];
-flags.op.n_white=[1.4,1.4];
+flags.labels.r1 = 'csf';     % CSF
+flags.labels.r2 = 'white';   % White matter
+flags.labels.r3 = 'gray';    % Gray matter
+flags.labels.r4 = 'bone';    % Skull
+flags.labels.r5 = 'skin';    % Scalp
+flags.op.lambda = [735, 850];                         % Wavelengths (nm)
+
+% Absorption coefficients (mua)
+flags.op.mua_skin  = [0.0170, 0.0190];              
+flags.op.mua_bone  = [0.0116, 0.0139];              
+flags.op.mua_gray  = [0.01782, 0.0192];               
+flags.op.mua_white = [0.01609, 0.0208];               
+flags.op.mua_csf   = [0.0040, 0.0040]; 
+
+% Reduced scattering coefficients (musp)
+flags.op.musp_skin  = [0.755, 0.64];                  
+flags.op.musp_bone  = [0.767, 0.84];                  
+flags.op.musp_gray  = [0.648, 0.6726];                
+flags.op.musp_white = [0.873, 1.0107];               
+flags.op.musp_csf   = [0.3, 0.3];  
+
+% Refractive index
+flags.op.n_skin  = [1.4, 1.4];
+flags.op.n_bone  = [1.4, 1.4];
+flags.op.n_csf   = [1.4, 1.4];
+flags.op.n_gray  = [1.4, 1.4];
+flags.op.n_white = [1.4, 1.4];
+
 flags.srcnum=size(info.optodes.spos3,1);
 % Get affine matrix that can be used to transform FROM participant space TO MNI space
 if exist('ds', 'var') && isfield(ds.dO, 'affineTform') %if mesh scaled, affineTform field will exist, save it to workspace

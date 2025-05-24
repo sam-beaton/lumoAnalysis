@@ -7,7 +7,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '12'; %'01', '06' or '12'
+params.timepoint = '06'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
@@ -73,7 +73,7 @@ end
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = 22:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     [~, name, ~] = fileparts(matchingFiles{nsub});
     fprintf('\nAnalysing file %d: %s\n', nsub, name);
@@ -85,6 +85,14 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     
         % ------ load/get .nirs data in ndot file form -------
         data = testFuncs.getNdotFile(matchingFiles{nsub}, paramsFile);
+
+        % ---------- Get trial numbers ------------
+        trialNumbers = analysisTools.getTrialNumbers(data.info);
+        %check trial numbers make sense - continue to next file if not
+        if isempty(trialNumbers)
+            fprintf('synchtypes does not match expected pattern. Skipping...\n');
+            continue; % Skip to next iteration
+        end
         
         % -------- Get data-dependent values and parameters ---------
         %for viewing preprocessed data & image recon/spectroscopy
@@ -161,44 +169,10 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         % Perform spectroscopy
         %fprintf('Performing Spectroscopy\n') 
         cortexHb = analysisTools.adaptedSpectroscopy_img(cortexMuA, E);
-
-        %fprintf('Creating derivative chromophore matrices\n') 
-        % Variables below needed? can just pass them as written.
-        %cortexHbO = cortexHb(:, :, 1);
-        %cortexHbR = cortexHb(:, :, 2);
-        %cortexHbT = cortexHbO + cortexHbR; %total
-        %cortexHbD = cortexHbO - cortexHbR; %difference
-        
-%         brainmeshLeft = load('/Users/sambe/TEMPSTORAGE/mri/meshes/leftHemisphereMesh01mo.mat'); % loads nodes and faces
-%         brainmeshRight = load('/Users/sambe/TEMPSTORAGE/mri/meshes/rightHemisphereMesh01mo.mat'); 
-% 
-%         
-%         [cortHbOBlockAvgData,~, ~, cortHbOBlockData] = testFuncs.getParcelAverageBlock( ...
-%                                                     cortexHbO, ...
-%                                                     allPulses, ...
-%                                                     floor((data.info.system.framerate/10)*paramsFile.dtAfter), ...
-%                                                     TkeepChrom{1});
-%         volData = Good_Vox2vol(cortHbOBlockAvgData(:, 113), jacob.info.tissue.dim);
-%         surfData = affine3d_img(volData, jacob.info.tissue.dim, infoSeg);
-%         PlotInterpSurfMesh(surfData, brainmeshLeft, brainmeshRight, infoSeg);
-% 
-%         paramsParcel = struct();
-%         paramsParcel.ctx = 'flat';  % ensures 'applycmap' uses regions
-%         paramsParcel.FaceColor = 'interp';
-%         paramsParcel.alpha = 1;
-%         paramsParcel.view = 'lat';
-%         paramsParcel.Scale = 1;
-%         paramsParcel.cmap = colorblindMap;  % apply the colorblind palette
-%         paramsParcel.CBar_on = false;       % optional: hide colorbar if not meaningful
-% 
-%         PlotInterpSurfMesh(maskParc, brainmeshLeft, brainmeshRight, infoSeg, paramsParcel);
-        
-        
-%         PlotInterpSurfMesh(vertices, faces, mmCoords, vals, 'interp');
     
         % ------- Convert segmentation and parcellation to DOT volume space -------
         % convert segmentation 
-        t1 = affine3d_img(maskSeg, infoSeg, jacob.info.tissue.dim, eye(4));
+        regMaskSeg = affine3d_img(maskSeg, infoSeg, jacob.info.tissue.dim, eye(4));
         % convert parcellation
         regMaskParc=affine3d_img(maskParc, infoParc, jacob.info.tissue.dim, eye(4)); 
          
@@ -208,10 +182,9 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         % Plotting:
         %PlotSlices(t1, jacob.info.tissue.dim, paramsFile, fooV.lambda1) % HbO
         %PlotSlices(t1, jacob.info.tissue.dim, paramsFile, fooV.lambda2) % HbR
-        
+                
         % ------- Find intersection of array coverage and parcellation --------
         parcelsSens = analysisTools.getParcelSensitivity(regMaskParc, fooV, paramsFile.lightSensitivityMin, paramsFile.parcPercentMin);
-        
         % Plotting:
         %PlotSlices(t1, jacob.info.tissue.dim, paramsFile, parcelsSens.lambda1)
         %PlotSlices(t1, jacob.info.tissue.dim, paramsFile, parcelsSens.lambda2)
@@ -220,15 +193,9 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         regCortexHb = cell(2,1);
         regCortexHb{1} = Good_Vox2vol(cortexHb(:, :, 1), jacob.info.tissue.dim); %HbO
         regCortexHb{2} = Good_Vox2vol(cortexHb(:, :, 2), jacob.info.tissue.dim); %HbR
-%         regCortexHbT = regCortexHb{1} + regCortexHb{2};
-% 
-%         if ~exist('regCortexGroup', 'var')
-%             regCortexGroup = zeros(size(regCortexHbT));
-%             cortexCount = 0;
-%         end
-%         regCortexGroup = regCortexGroup+regCortexHbT;
-%         cortexCount = cortexCount + 1;
-%         
+
+
+     
         % -------- Take parcel average of chromophore data -----------
         parcelAveraged = cell(data.info.io.Nwl,1); %should be 2*1
         parcelNumbers = cell(data.info.io.Nwl,1);
@@ -246,7 +213,7 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
             TkeepChrom{iChrom} = tempTkeep;
         end
         
-        % ---------- Obtain block data for each parcel ----------
+        % ---------- Get block data for each parcel ----------
         parcelBlockData = cell(data.info.io.Nwl,1);
         parcelBlockAvgData = cell(data.info.io.Nwl,1);
         allPulses = [];
@@ -266,7 +233,7 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
                                                     TkeepChrom{iChrom});
         end
         
-
+        % ---------- Get block data for each voxel ----------
         TkeepChrom = cell(data.info.io.Nwl,1);
         for iChrom = 1:numel(fieldnames(parcelsSens))
             [gvtd, gvtdMedian] = CalcGVTD(cortexHb(:, :, 1));
@@ -281,13 +248,15 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
                                                     cortexHb(:,:,iChrom), ...
                                                     allPulses, ...
                                                     floor((data.info.system.framerate/10)*paramsFile.dtAfter), ...
-                                                    TkeepChrom{iChrom});
+                                                    TkeepChrom{iChrom}, ...
+                                                    trialNumbers);
         end
         for iChrom = 1:numel(fieldnames(parcelsSens))
             cortexHbPeak{iChrom} = testFuncs.getCortexChromPeak(cortexBlockData{iChrom}, ...
                                                     data.info, ...
                                                     paramsFile);
         end
+
         % ----------- CHECK Hb DATA -----------------
 % 
 %         firstChan = 1;
@@ -346,19 +315,10 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 %         checkData = checkData(parcelLocs, :, :);
 %         checkData = squeeze(mean(checkData(:, 1:5, :), 2));
 %         plot(checkData')
-
-        % ---------- Get trial numbers ------------
-        trialNumbers = analysisTools.getTrialNumbers(data.info);
         
         % ---------- Checks and housekeeping ------------
         % for comparison with next cap to save loading Jacobian if possible
         prevCapName = paramsFile.capName; 
-    
-        %check trial numbers make sense - continue to next file if not
-        if isempty(trialNumbers)
-            fprintf('synchtypes does not match expected pattern. Skipping...\n');
-            continue; % Skip to next iteration
-        end
         
         % check all blocks were used for averaging i.e. weren't too close to 
         % ends of recording
@@ -373,16 +333,16 @@ for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         parcelData.trialNumbers = trialNumbers;
         parcelData.parcelNumbers = parcelNumbers;
         parcelData.capName = paramsFile.capName;
-        
+
         % ---------- Save variables ----------
-        analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, parcelData, [], cortexHbPeak);
+        analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, parcelData, [], cortexHbPeak, fooV);
         
     catch
         fprintf(strcat('Could not run analysis - look into manually.\n'))
     end
 
     % ---------- Tidying up ----------
-    clearvars -except params jacob driveName capCSV capNames jacobianDir maskSeg infoSeg maskParc infoParc matchingFiles prevCapName regCortexGroup cortexCount
+    clearvars -except params jacob fooV driveName capCSV capNames jacobianDir fooVDir maskSeg infoSeg maskParc infoParc matchingFiles prevCapName regCortexGroup cortexCount
     close all; %incase plotting used
 end
 
