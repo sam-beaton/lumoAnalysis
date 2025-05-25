@@ -1,16 +1,11 @@
-function [BA_out, BSTD_out, BT_out, blocks] = getDataAverageBlock(data_in, pulse, dt, Tkeep)
-
-% getDataAverageBlock Averages data by stimulus blocks.
-%
-% GETPARCELAVERAGEBLOCK Extracts stimulus-aligned data blocks and computes statistics.
-%
-%   Segments time-series data into stimulus-aligned blocks of fixed duration,
-%   computes block-averaged responses, and returns demeaned/normalised outputs.
+function [BA_out, BSTD_out, BT_out, blocks] = getDataAverageBlock(data_in, pulse, dtPre, dtAfter, Tkeep)
+% getDataAverageBlock Extracts stimulus-aligned data blocks including pre-stimulus baseline.
 %
 % INPUTS:
 %   data_in - Input data array with time as the last dimension
 %   pulse   - Vector of stimulus onset times (sample indices)
-%   dt      - Block duration in samples
+%   dtPre   - Number of samples to include before each pulse
+%   dtAfter - Number of samples to include after each pulse
 %   Tkeep   - Optional temporal mask; false values set corresponding timepoints to NaN
 %
 % OUTPUTS:
@@ -18,92 +13,78 @@ function [BA_out, BSTD_out, BT_out, blocks] = getDataAverageBlock(data_in, pulse
 %   BSTD_out - Standard deviation across blocks
 %   BT_out   - Normalized block averages (BA_out ./ BSTD_out)
 %   blocks   - Raw extracted blocks [channels x time x blocks]
-%
-% NB:
-%   - Time dimension is assumed to be the last dimension of data_in
-%   - Blocks containing any NaN values are excluded from averaging
-%   - Supports both 2D (channels x time) and N-D input arrays
-%   - Pulses extending beyond data boundaries are handled with NaN padding
-%
-% SLB 22/5/25
-% Edited from BLOCKAVERAGE in the NeuroDOT toolbox
 
 %% Parameters and Initialization.
 dims = size(data_in);
 Nt = dims(end); % Assumes time is always the last dimension.
 NDtf = (ndims(data_in) > 2); %#ok<ISMAT>
+if ~exist('Tkeep','var'), Tkeep = true(Nt, 1); end
+pulse = pulse(:);
 Nbl = length(pulse);
-if ~exist('Tkeep','var'), Tkeep=ones(Nt,1)==1;end % temporal mask
+dt = dtPre + dtAfter;
 
-% Check to make sure that the block after the last synch point for this
-% pulse does not exceed the data's time dimension. 
-if (dt + pulse(end)-1) > Nt
-    Nbl = Nbl - 1;
-end
-
-%% N-D Input (for 3-D or N-D voxel spaces).
+% Reshape for N-D input
 if NDtf
     data_in = reshape(data_in, [], Nt);
 end
 
-%% Incorporate Tkeep  
-data_in(:,~Tkeep)=NaN;
+% Apply temporal mask
+data_in(:, ~Tkeep) = NaN;
 
-
-%% Cut data into blocks.
-Nm=size(data_in,1);
+% Allocate block matrix
+Nm = size(data_in, 1);
 blocks = NaN(Nm, dt, Nbl);
+
+%% Extract blocks
 for k = 1:Nbl
-    if (pulse(k) + dt - 1) <= Nt
-        % extract the data segment
-        dataSegment = data_in(:, pulse(k):(pulse(k) + dt - 1));
-        
-        % check if the segment contains any NaNs (channel-wise)
-        for iChan = 1:size(dataSegment, 1)
-            if any(isnan(dataSegment(iChan, :)))
-                % if so, set the entire channel to NaN
-                dataSegment(iChan, :) = NaN;
-            else
-                %dataSegment(iChan, :) = dataSegment(iChan, :) - nanmean(dataSegment(iChan, :)); 
-            end
-        end
-        % assign
-        blocks(:, :, k) = dataSegment;
-    else % For blocks extending beyond data end:
-        
-        % number of sampled values to be padded with NaNs
-        dtb = pulse(k) + dt - 1 - Nt;
-        
-        % extrac available data
-        dataSegment = data_in(:, pulse(k):end);
-        
-        % check if the segment contains any NaNs (channel-wise)
-        for iChan = 1:size(dataSegment, 1)
-            if any(isnan(dataSegment(iChan, :)))
-                % if so, set the entire channel to NaN
-                dataSegment(iChan, :) = NaN;
-            else
-                %dataSegment(iChan, :) = dataSegment(iChan, :) - nanmean(dataSegment(iChan, :)); 
-            end
-        end
-        
-        % concatenate with NaN padding
-        blocks(:, :, k) = cat(2, dataSegment, NaN(size(data_in, 1), dtb));
+    startIdx = pulse(k) - dtPre;
+    endIdx = pulse(k) + dtAfter - 1;
+
+    % Adjust for pre-stimulus underflow
+    padPre = 0;
+    if startIdx < 1
+        padPre = 1 - startIdx;
+        startIdx = 1;
     end
+
+    % Adjust for post-stimulus overflow
+    padPost = 0;
+    if endIdx > Nt
+        padPost = endIdx - Nt;
+        endIdx = Nt;
+    end
+
+    dataSegment = data_in(:, startIdx:endIdx);
+
+    % Padding if needed
+    if padPre > 0
+        dataSegment = [NaN(Nm, padPre), dataSegment];
+    end
+    if padPost > 0
+        dataSegment = [dataSegment, NaN(Nm, padPost)];
+    end
+
+    % Mark block invalid if any channel contains NaNs
+    for iChan = 1:Nm
+        if any(isnan(dataSegment(iChan, :)))
+            dataSegment(iChan, :) = NaN;
+        end
+    end
+
+    blocks(:, :, k) = dataSegment;
 end
 
-%% Average blocks and return.
-BA_out = nanmean(blocks, 3);
-BSTD_out = nanstd(blocks, [],3);
-BA_out = bsxfun(@minus,BA_out,nanmean(BA_out,2));
-BT_out = BA_out./BSTD_out;
-BT_out(~isfinite(BT_out))=0;
+%% Compute block means and normalised output
+BA_out = nanmean(blocks, 3);                    % Average across blocks
+BSTD_out = nanstd(blocks, 0, 3);                % Std across blocks
+BA_out = bsxfun(@minus, BA_out, nanmean(BA_out, 2));  % Demean each channel
+BT_out = BA_out ./ BSTD_out;                   % Normalised
+BT_out(~isfinite(BT_out)) = 0;
 
-
-%% N-D Output.
+%% Reshape output to match input dimensions
 if NDtf
     BA_out = reshape(BA_out, [dims(1:end-1), dt]);
     BSTD_out = reshape(BSTD_out, [dims(1:end-1), dt]);
     BT_out = reshape(BT_out, [dims(1:end-1), dt]);
-    blocks=reshape(blocks,[dims(1:end-1), dt,Nbl]);
+    blocks = reshape(blocks, [dims(1:end-1), dt, Nbl]);
 end

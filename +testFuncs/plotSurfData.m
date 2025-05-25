@@ -7,7 +7,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '06'; %'01', '06' or '12'
+params.timepoint = '12'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
@@ -103,8 +103,8 @@ for nsub = 1:length(matchingFiles)
 %     fooVname = 
 %     fooV = 
     % ---------- Transfrom FOV to space for mesh projection ---------
-    fooV.lambda1 = affine3d_img(fooV.lambda1, jacob.info.tissue.dim, infoSeg);
-    fooV.lambda2 = affine3d_img(fooV.lambda2, jacob.info.tissue.dim, infoSeg);
+%     fooV.lambda1 = affine3d_img(fooV.lambda1, jacob.info.tissue.dim, infoSeg);
+%     fooV.lambda2 = affine3d_img(fooV.lambda2, jacob.info.tissue.dim, infoSeg);
 
     hboVolData = Good_Vox2vol(cortexHbO, jacob.info.tissue.dim);
     hbrVolData = Good_Vox2vol(cortexHbR, jacob.info.tissue.dim);

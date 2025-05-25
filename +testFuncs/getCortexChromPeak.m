@@ -1,15 +1,44 @@
 function [cortexChromPeaks] = getCortexChromPeak(cortexChromBlocksData, info, params, trialNumbers)
 
-    % generate values for each voxel in the cortex, representative of the mean
-    % of the peak of the first 'n' trials, where 'n' is a variable input
+% getCortexChromPeak Extracts peak and baseline chromophore values for cortical voxels across trial blocks.
+%
+%   [cortexChromPeaks] = getCortexChromPeak(cortexChromBlocksData, info, params, trialNumbers)
+%
+%   This function computes block-wise averages of the chromophore response 
+%   during a specified peak time window for each voxel in the cortex, using
+%   fNIRS block-aligned data. Additionally, it calculates a baseline value 
+%   from the first few seconds of the block-aligned trials and stores it in 
+%   the first output cell.
+%
+% INPUTS:
+%   cortexChromBlocksData - 3D array [voxels x time x trials] of block-aligned chromophore data
+%   info                   - Structure containing system information, including frame rate
+%   params                 - Structure containing analysis parameters:
+%                            .peakTime      - Time (in seconds) of the expected peak
+%                            .peakDuration  - Duration (in seconds) of the peak window
+%                            .dtPre         - Duration (in seconds) of pre-stimulus baseline
+%   trialNumbers           - Vector of original trial numbers associated with each slice in the 3rd dimension of the data
+%
+% OUTPUTS:
+%   cortexChromPeaks       - Cell array containing mean peak response per block:
+%                            - Entry {1} is the mean baseline value (averaged across all included trials in block 1)
+%                            - Entries {2:n+1} contain peak responses for each 5-trial block (NaN if fewer than 3 trials in a block)
+%
+% NOTES:
+%   - Blocks are created in groups of 5 consecutive trial numbers (1–5, 6–10, etc.)
+%   - Blocks with fewer than 3 available trials are skipped (assigned NaN)
+%   - All temporal indexing is converted to sample indices based on the provided frame rate
+%   - Mean values are computed using 'omitnan' to ignore missing data
+
 
     % Setup
     maxTrial = max(trialNumbers);
     nBlocks = ceil(maxTrial / 5);
     cortexChromPeaks = cell(nBlocks, 1);
     
-    peakRange = [params.peakTime - floor(params.peakDuration/2), params.peakTime + floor(params.peakDuration/2)];
+    peakRange = [params.peakTime  + params.dtPre - floor(params.peakDuration/2), params.peakTime + params.dtPre + floor(params.peakDuration/2)];
     peakRange = floor(peakRange*(info.system.framerate/10));
+    baselineLength = floor(params.dtPre*(info.system.framerate/10));
 
     for iBlock = 1:nBlocks
         blockStart = (iBlock - 1) * 5 + 1;
@@ -17,20 +46,27 @@ function [cortexChromPeaks] = getCortexChromPeak(cortexChromBlocksData, info, pa
 
         % Get trial numbers for this block
         blockTrials = trialNumbers(trialNumbers >= blockStart & trialNumbers <= blockEnd);
+        [~, trialIdxInOriginal] = ismember(blockTrials, trialNumbers);
 
-        if isempty(blockTrials) || length(blockTrials) < 4
-            cortexChromPeaks{iBlock} = NaN(size(cortexChromBlocksData, 1), 1);
+        if isempty(blockTrials) || length(blockTrials) < 3
+            cortexChromPeaks{iBlock+1} = NaN(size(cortexChromBlocksData, 1), 1);
             continue;
         end
 
         % take peak range from all voxels, trials
-        dataPeakWindow = cortexChromBlocksData(:, peakRange(1):peakRange(2), blockTrials);
+        dataPeakWindow = cortexChromBlocksData(:, peakRange(1):peakRange(2), trialIdxInOriginal);
     
         % take mean of peak range values, per row
         trialPeaks = mean(dataPeakWindow, 2, 'omitnan');  % [voxels x 1 x trials]
     
         % take mean over trials (dim 3)
-        cortexChromPeaks{iBlock} = mean(trialPeaks, 3, 'omitnan');  % [voxels x 1]
+        cortexChromPeaks{iBlock+1} = mean(trialPeaks, 3, 'omitnan');  % [voxels x 1]
+
+        if iBlock == 1
+            dataBaselineWindow = cortexChromBlocksData(:, 1:baselineLength, trialIdxInOriginal);
+            trialBaselines = mean(dataBaselineWindow, 2, 'omitnan');  % [voxels x 1 x trials]
+            cortexChromPeaks{1} = mean(trialBaselines, 3, 'omitnan');  % [voxels x 1]
+        end
     end
 
 end
