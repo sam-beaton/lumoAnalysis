@@ -7,7 +7,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '06'; %'01', '06' or '12'
+params.timepoint = '12'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
@@ -37,7 +37,7 @@ params.maxChannelDistance = 40; % Frijia et al (2021): 45
 % Block averaging
 params.dtPre = 40; % start
 params.dtAfter = 190; % finish
-params.numSurfaceAvgTrials = 5; % number of trials to average for surface images
+%params.numSurfaceAvgTrials = 5; % number of trials to average for surface images
 params.peakTime = 90; %anticipated peak time for haemodynamic response
 params.peakDuration = 40; %anticipated peak window duration
 % PlotInterpSurfMesh
@@ -47,7 +47,7 @@ paramsPlot.PD = 0;
 
 % ---------- Derivative parameters -------------
 %data location task and age dependant
-params.dataLoc = fullfile(params.parentDir, 'derivatives', params.cortexDataDir);
+params.cortexDataLoc = fullfile(params.parentDir, 'derivatives', params.cortexDataDir);
 %params.dataLoc = fullfile(params.parentDir, 'nirs');
 
 % ---------- Load files needed for all iterations of the loop ----------
@@ -79,35 +79,31 @@ for nsub = 1:length(matchingFiles)
     paramsFile = params;
 
     load(matchingFiles{nsub});
-    cortexHbO = cortexHbPeak{1}./numParticipants;
-    cortexHbR = cortexHbPeak{2}./numParticipants;
+    cortexHbo = cortexHbPeak{1}{2};
+    cortexHbr = cortexHbPeak{2}{2};
 
-    cortexHbO(isnan(cortexHbO)) = 0;
-    cortexHbR(isnan(cortexHbR)) = 0;
+%     cortexHbo(isnan(cortexHbo)) = 0;
+%     cortexHbr(isnan(cortexHbr)) = 0;
 
     paramsFile.capName = analysisTools.getInfantCap(capCSV, capNames, paramsFile.timepoint, matchingFiles{nsub});
 
     % ------- Image reconstruction: Load Jacobian and invert for MuA ------
     % construct Jacobian filename, load, and reshape (if needed)
     jacobFName = strcat('A_', paramsFile.capName, '_on_HD_Mesh_', paramsFile.timepoint, 'mo.mat');
-    % load A matrix
-    % if previous cap and position same as current one, same jacobian is used
-    if exist('prevCapName', 'var') && ...
-            numel(paramsFile.capName) == numel(prevCapName) && ...
-            all(paramsFile.capName == prevCapName)
-       %do nothing
-    else 
-        jacob=load(fullfile(jacobianDir, jacobFName),'info','A'); %load info and the matrix itself from the Jacobian
-    end
+    % load info for Jacobian matrix
+    infoJacob=load(fullfile(jacobianDir, jacobFName),'info'); %load info and the matrix itself from the Jacobian
     
-    fooVname = 
-    fooV = 
+%     fooVname = 
+%     fooV = 
+    % ---------- Transfrom FOV to space for mesh projection ---------
+%     fooV.lambda1 = affine3d_img(fooV.lambda1, jacob.info.tissue.dim, infoSeg);
+%     fooV.lambda2 = affine3d_img(fooV.lambda2, jacob.info.tissue.dim, infoSeg);
 
-    hboVolData = Good_Vox2vol(cortexHbO, jacob.info.tissue.dim);
-    hbrVolData = Good_Vox2vol(cortexHbR, jacob.info.tissue.dim);
+    hboVolData = Good_Vox2vol(cortexHbo, infoJacob.info.tissue.dim);
+    hbrVolData = Good_Vox2vol(cortexHbr, infoJacob.info.tissue.dim);
 
-    hboSurfData = affine3d_img(hboVolData, jacob.info.tissue.dim, infoSeg);
-    hbrSurfData = affine3d_img(hbrVolData, jacob.info.tissue.dim, infoSeg);
+    hboSurfData = affine3d_img(hboVolData, infoJacob.info.tissue.dim, infoSeg);
+    hbrSurfData = affine3d_img(hbrVolData, infoJacob.info.tissue.dim, infoSeg);
 
     if ~exist('groupHboSurfData', 'var')
         % save original dimensions of surface data for reshaping
@@ -139,8 +135,8 @@ for nsub = 1:length(matchingFiles)
    
 end
 
-brainmeshLeft = load('/Users/sambe/TEMPSTORAGE/mri/meshes/leftHemisphereMesh01mo.mat'); % loads nodes and faces
-brainmeshRight = load('/Users/sambe/TEMPSTORAGE/mri/meshes/rightHemisphereMesh01mo.mat'); 
+brainmeshLeft = load(strcat('/Users/sambe/TEMPSTORAGE/mri/meshes/leftHemisphereMesh', params.timepoint,'mo.mat')); % loads nodes and faces
+brainmeshRight = load(strcat('/Users/sambe/TEMPSTORAGE/mri/meshes/rightHemisphereMesh', params.timepoint,'mo.mat'));
 
 [hboH, hboP, hboCI, hboStats] = ttest(groupHboSurfData, 0, 'Dim', 2);
 [hbrH, hbrP, hbrCI, hbrStats] = ttest(groupHbrSurfData, 0, 'Dim', 2);

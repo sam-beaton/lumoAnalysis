@@ -8,7 +8,7 @@ function parcelSensOut = getParcelSensitivity(maskParc, fooV, lightSensitivityMi
         parcPercentMin = 0.5;
     elseif parcPercentMin >= 1 && parcPercentMin <= 100
         parcPercentMin = parcPercentMin./10;
-    elseif parPercent >= 0 && parcPercentMin < 1
+    elseif parPercentMin >= 0 && parcPercentMin < 1
         %do nothing
     else 
         error('Please provide a valid spatial coverage percentage for your given parcellation')
