@@ -9,8 +9,8 @@ This repository contains scripts for data analysis using the NeuroDOT toolbox.
 ```
 nDotAnalysis/
 │ 
-├── nDotAnalysis.m
-├── tileAnalysisParallel.m
+├── nDotAnalysis.m # runs image reconstruction and saves data in parcel space
+├── tileAnalysisParallel.m # runs channel and tile space analysis
 │ 
 ├── +analysisTools/ # modular helper functions
 ├── +plotting/ # modular plotting functions
