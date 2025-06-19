@@ -9,10 +9,12 @@ This repository contains scripts for data analysis using the NeuroDOT toolbox.
 ```
 nDotAnalysis/
 │ 
-├── master script(s) to go here ...
+├── nDotAnalysis.m
+├── tileAnalysisParallel.m
 │ 
 ├── +analysisTools/ # modular helper functions
-│   ├── functions to go here ....
+├── +plotting/ # modular plotting functions
+├── auxilliary/ # pre-analysis helper functions to format data etc.
 │ 
 │── README.md
 
