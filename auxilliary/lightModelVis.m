@@ -4,15 +4,15 @@ close all; clear all;
 % Add toolboxes and relevant directories
 addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT')); %neurodot toolbox
 addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NIRFASTer')); %nirfast toolbox for meshing
-addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %contains edited functions where necessary for use in image recon
+addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %contains edited functions where necessary for use in image recon
 
 %% User-set file params
 %%% Change where necessary
-timePoint = '01'; %age of infant: '01', '06' or '12'
+timePoint = '12'; %age of infant: '01', '06' or '12'
 capName='GA00440'; %name of JSON file containing array info
 
 %storage drive - easier than changing all names all the time
-driveName = '/Volumes/G-DRIVE ArmorATD/';
+driveName = '/Volumes/Extreme SSD/';
 
 jacobianDir=strcat(driveName, 'imageRecon/neurodot/Jacobians/');
 meshDir = strcat(driveName, 'imageRecon/neurodot/Meshes/'); %folder containing meshes
@@ -166,7 +166,7 @@ GMfooV = gmIndBin.*fooV; %multiply to remove non-GM tissues from overlay
 
 PlotSlices(t1,dim,pA,GMfooV)
 
-%% Find intersection of light model and parcellation
+%% Find intersection of light model and GM
 % transform Parcellated GM volume to dim space
 regMaskParc=affine3d_img(maskParc,infoSeg,dim,eye(4)); 
 

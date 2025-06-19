@@ -52,8 +52,8 @@ function testPlotCap(info, params, customPairs)
 % Nd = length(unique(info.pairs.Det));
 Ns = length(info.optodes.spos3);
 Nd = length(info.optodes.dpos3);
-LineColor = 'w';
-BkgdColor = 'k';
+LineColor = 'k';
+BkgdColor = 'w';
 if ~exist('params','var'),params=struct;end
 if ~isfield(params,'SrcColor'),params.SrcColor=[1, 0.75, 0.75];end
 if ~isfield(params,'DetColor'),params.DetColor=[0.55, 0.55, 1];end
@@ -88,7 +88,7 @@ SrcRGB = repmat(params.SrcColor, Ns, 1);
 DetRGB = repmat(params.DetColor, Nd, 1);
 
 %% Send to PlotCapData.
-PlotCapData(SrcRGB, DetRGB, info, params)
+plotting.adaptedPlotCapData(SrcRGB, DetRGB, info, params)
 
 hold on
 
@@ -105,17 +105,29 @@ if exist('customPairs', 'var') && ~isempty(customPairs)
     for i = 1:length(customPairs.Src)
         sIdx = customPairs.Src(i);
         dIdx = customPairs.Det(i);
-        thisColor = customPairs.Color{i};
-
+        % Get positions
+        sIdx = customPairs.Src(i);
+        dIdx = customPairs.Det(i);
+        
+        if sIdx > size(spos, 1) || dIdx > size(dpos, 1)
+            warning('Skipping invalid pair: Src %d, Det %d', sIdx, dIdx);
+            continue;
+        end
+        
         sPos = spos(sIdx, :);
         dPos = dpos(dIdx, :);
-
+        
+        lineColor = customPairs.Color{i};  % RGB triplet like [0.85, 0.33, 0.10]
+        lineStyle = customPairs.Style{i};  % String like '--'
+        
         if strcmp(params.dimension, '2D')
-            plot([sPos(1), dPos(1)], [sPos(2), dPos(2)], thisColor, 'LineWidth', 1.5)
+            plot([sPos(1), dPos(1)], [sPos(2), dPos(2)], ...
+                 'Color', lineColor, 'LineStyle', lineStyle, 'LineWidth', strcmp(lineStyle, '-') * 3 + ~strcmp(lineStyle, '-') * 1.5);
         else
             plot3([sPos(1), dPos(1)], [sPos(2), dPos(2)], [sPos(3), dPos(3)], ...
-                  'Color', thisColor, 'LineWidth', 1.5)
+                  'Color', lineColor, 'LineStyle', lineStyle, 'LineWidth', strcmp(lineStyle, '-') * 3 + ~strcmp(lineStyle, '-') * 1.5);
         end
+
     end
 end
 

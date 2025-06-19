@@ -2,7 +2,7 @@ function trialNumbers = getTrialNumbers(info)
 
 % Returns trial numbers based on paradigmFull/paradigm info for recording
     
-    if isfield('info', 'paradigmFull')
+    if isfield(info, 'paradigmFull')
         synchtypes = info.paradigmFull.synchtype;
     else
         synchtypes = info.paradigm.synchtype;

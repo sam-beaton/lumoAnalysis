@@ -7,7 +7,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-timepoints = {'01', '06', '12'};
+timepoints = {'06'};%{'01', '06', '12'};
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
@@ -16,7 +16,7 @@ driveName = '/Volumes/Extreme SSD/';
 %overarching directory containing .nirs files
 params.parentDir = fullfile(driveName, 'dot');
 %processing method (%suffix after 'preproc-' in derivatives folder)
-params.preProcDir = 'TEST025'; 
+params.preProcDir = '025LPF'; 
 % directory for (statistical) outputs
 params.outputDir = fullfile(params.parentDir, 'derivatives'); %Output Directory for files
 
@@ -26,7 +26,7 @@ capNames = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Docu
 %cap info for each participant, in .csv format
 capCSV = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/cappingData.csv'; 
 % maximum channel distance to analyse
-params.maxChannelDistance = 45; % Frijia et al (2021)
+params.maxChannelDistance = 40; % Frijia et al (2021)
 % Block averaging
 params.dtPre = 40; % start
 params.dtAfter = 190; % finish
@@ -37,9 +37,10 @@ params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', pa
 
 %%
 % Start a parallel pool (specify number of workers)
-parpool(length(timepoints));
+% parpool(length(timepoints));
 
-parfor iTime = 1:length(timepoints)
+% parfor iTime = 1:length(timepoints)
+for iTime = 1:length(timepoints)
 
     % Create a local copy of params for each worker
     paramsLocal = params;
@@ -144,7 +145,7 @@ parfor iTime = 1:length(timepoints)
 end
 
 % Shut down the parallel pool
-delete(gcp('nocreate'));
+% delete(gcp('nocreate'));
 
 fprintf("\n=========================FINISHED PROCESSING===========================\n")
 

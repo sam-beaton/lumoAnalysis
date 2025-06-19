@@ -1,4 +1,4 @@
-function data = nirs2ndot(filename, save_file, output)
+function data = adaptedNirs2ndot(filename, save_file, output)
 
     % Translation from .nirs to NeuroDOT-compatible format
     % This function takes in a .nirs file and converts it to NeuroDOT 
@@ -107,6 +107,8 @@ function data = nirs2ndot(filename, save_file, output)
         % Set synchtimes
         info.paradigm.synchtimes = synchTot/info.system.framerate;
     end
+
+    info.paradigm.tIncCh = nirsData.SD3D.tIncCh'; % added SLB 29/5/25
     
     
     %% Optodes

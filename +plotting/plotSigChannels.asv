@@ -7,7 +7,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '01'; %'01', '06' or '12'
+params.timepoint = '12'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
@@ -45,9 +45,9 @@ params.PD=1;
 params.Scale=1;
 params.Th.P=5e-2;
 params.Th.N=-params.Th.P;
-params.TC = 1; %use true color mapping
-params.cbmode = 0; %use custom colorbar limits
-params.Cmap.P = colorcube; %use custom co§lormap
+params.TC = 1; %use true colour mapping
+params.cbmode = 0; %use custom colourbar limits
+params.Cmap.P = colorcube; %use custom coulormap
 
 % ---------- Derivative parameters -------------
 %data location task and age dependant
@@ -78,15 +78,7 @@ matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 paramsFile = params;
 
 % ------ load/get .nirs data in ndot file form -------
-data = testFuncs.getNdotFile(matchingFiles{nsub}, paramsFile);
-
-% ---------- Get trial numbers ------------
-trialNumbers = analysisTools.getTrialNumbers(data.info);
-%check trial numbers make sense - continue to next file if not
-if isempty(trialNumbers)
-    fprintf('synchtypes does not match expected pattern. Skipping...\n');
-    continue; % Skip to next iteration
-end
+data = testFuncs.getNdotFile(matchingFiles{1}, paramsFile);
 
 % -------- Get data-dependent values and parameters ---------
 %for viewing preprocessed data & image recon/spectroscopy
@@ -115,3 +107,132 @@ act12HbOSrc = act12Table.Source;
 act12HbRDet = act12Table.Detector;
 extHabHbOSrc = extHabHbOTable.Source;
 extHabHbODet = extHabHbOTable.Detector;
+
+colours.HbO    = [0, 0.45, 0.74];    % Blue
+colours.HbR    = [0.85, 0.33, 0.10]; % Red
+colours.Both   = [0.47, 0.67, 0.19]; % Green
+
+% ---------- make custm pairs for 6mo
+
+% Initialise struct-of-arrays format
+customPairs6.Src   = [];
+customPairs6.Det   = [];
+customPairs6.Color = {};
+customPairs6.Style = {};
+
+% Create ID strings to detect overlap (same channel in both chromophores)
+pairIDs_HbO = strcat(string(act6HbOTable.Source), '_', string(act6HbOTable.Detector));
+pairIDs_HbR = strcat(string(act6HbRTable.Source), '_', string(act6HbRTable.Detector));
+
+% Find channel pairs present in both HbO and HbR (both chromophores)
+overlapPairs = intersect(pairIDs_HbO, pairIDs_HbR);
+
+% Loop through HbO table
+for i = 1:height(act6HbOTable)
+    src = act6HbOTable.Source(i);
+    det = act6HbOTable.Detector(i);
+    pairID = strcat(string(src), '_', string(det));
+
+    if ismember(pairID, overlapPairs)
+        colour = colours.Both;  % Green for both chromophores
+    else
+        colour = colours.HbO;   % Blue for HbO
+    end
+
+    % All activation-only lines are dashed
+    style = '--';
+
+    % Append to struct
+    customPairs6.Src(end+1)   = src;
+    customPairs6.Det(end+1)   = det;
+    customPairs6.Color{end+1} = colour;
+    customPairs6.Style{end+1} = style;
+end
+
+% Loop through HbR table
+for i = 1:height(act6HbRTable)
+    src = act6HbRTable.Source(i);
+    det = act6HbRTable.Detector(i);
+    pairID = strcat(string(src), '_', string(det));
+
+    % Only include HbR if not already in HbO (i.e. avoid duplicates)
+    if ~ismember(pairID, pairIDs_HbO)
+        colour = colours.HbR;   % Red for HbR
+        style = '--';
+
+        % Append to struct
+        customPairs6.Src(end+1)   = src;
+        customPairs6.Det(end+1)   = det;
+        customPairs6.Color{end+1} = colour;
+        customPairs6.Style{end+1} = style;
+    end
+end
+
+% ----------- make custom pairs for 12mo
+colours.HbO    = [0, 0.45, 0.74];    % Blue
+colours.HbR    = [0.85, 0.33, 0.10]; % Red
+colours.Both   = [0.47, 0.67, 0.19]; % Green
+
+% Initialise output structure
+customPairs12.Src   = [];
+customPairs12.Det   = [];
+customPairs12.Color = {};
+customPairs12.Style = {};
+
+% Generate unique channel IDs for activation and extended habituation
+actPairsHbO = strcat(string(act12HbOTable.Source), '_', string(act12HbOTable.Detector));
+actPairsHbR = strcat(string(act12HbRTable.Source), '_', string(act12HbRTable.Detector));
+extHabPairs = strcat(string(extHabHbOTable.Source), '_', string(extHabHbOTable.Detector));
+
+% Identify channels with both chromophores in activation
+actOverlap = intersect(actPairsHbO, actPairsHbR);  % Channels with both HbO and HbR
+
+% Identify overlapping channels with extended habituation
+overlapWithExtHab = intersect([actPairsHbO; actPairsHbR], extHabPairs);
+
+% Combine activation table
+actTable = [act12HbOTable; act12HbRTable];
+actTablePairs = strcat(string(actTable.Source), '_', string(actTable.Detector));
+
+% Loop through activation entries
+for i = 1:height(actTable)
+    src    = actTable.Source(i);
+    det    = actTable.Detector(i);
+    pairID = strcat(string(src), '_', string(det));
+
+    % Determine colour
+    if ismember(pairID, actOverlap)
+        colour = colours.Both;  % Green if both chromophores found
+    elseif actTable.Chrom(i) == 1
+        colour = colours.HbO;   % Blue for HbO
+    else
+        colour = colours.HbR;   % Red for HbR
+    end
+
+    % Determine line style
+    if ismember(pairID, overlapWithExtHab)
+        style = '-';    % Solid line for overlap with extHab
+    else
+        style = '--';   % Dashed line for activation only
+    end
+
+    % Append to customPairs structure
+    customPairs12.Src(end+1)   = src;
+    customPairs12.Det(end+1)   = det;
+    customPairs12.Color{end+1} = colour;
+    customPairs12.Style{end+1} = style;
+end
+
+paramsPlot.dimension = '3D';
+paramsPlot.fig_size = [100, 100, 1400, 700];  % bigger and more centered
+
+data.info.optodes.dpos2 = data.info.optodes.dpos3(:,1:2);
+data.info.optodes.spos2 = data.info.optodes.spos3(:,1:2);
+
+% Plot 6mo
+testFuncs.testPlotCap(data.info, paramsPlot, customPairs6);
+
+% Plot 12mo
+testFuncs.testPlotCap(data.info, paramsPlot, customPairs12);
+
+

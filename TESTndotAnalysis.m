@@ -7,7 +7,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '12'; %'01', '06' or '12'
+params.timepoint = '01'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
@@ -71,8 +71,20 @@ end
 %% Search for task files 
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
+
+% params.tKeepDir = '025LPF';
+% params.tKeepLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', params.tKeepDir));
+% 
+% timepointNum = str2double(params.timepoint(1:2)); % Converts '01' -> 1, '48' -> 48
+% timepointNum = sprintf('%02d', timepointNum); % Ensures zero-padded format
+% fileList = dir(fullfile(params.tKeepLoc, '**', sprintf('*ses-%s*task-%s*.nirs', timepointNum, params.task)));
+% fileList = fileList(arrayfun(@(f) ~startsWith(f.name, '.'), fileList));
+% 
+% tKeepFiles = fullfile({fileList.folder}, {fileList.name});
+
+
 % Run Analysis
-for nsub = 1%:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = 7%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     [~, name, ~] = fileparts(matchingFiles{nsub});
     fprintf('\nAnalysing file %d: %s\n', nsub, name);
@@ -121,6 +133,37 @@ for nsub = 1%:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         % Reshape if necessary
         jacob = analysisTools.reshapeJacob(jacob);
         
+        tKeepTemp = ones(size(data.info.paradigm.tIncCh));
+        tKeep = data.info.paradigm.tIncCh;
+        tKeep(tKeep ~= 1) = NaN;
+        taskMarkers = data.info.paradigm.synchpts(data.info.paradigm.synchtype ~= 1);
+        for tMark = 1:size(taskMarkers, 1)
+            rejMarker = taskMarkers(tMark);
+
+            rejMarkerNum = find(taskMarkers == rejMarker);
+            for iChan = 1:size(tKeep, 1)
+                if isempty(rejMarkerNum)
+                    disp('The array is empty.');
+                end
+                if rejMarker+floor(params.dtAfter*(data.info.system.framerate/10)) <= size(lmdata,2)
+
+                    if tMark == size(taskMarkers, 1)
+                        hasNaN = any(isnan(tKeep(iChan, rejMarker:rejMarker+floor(params.dtAfter*(data.info.system.framerate/10)))));
+                        if hasNaN == 1
+                            tKeepTemp(iChan, rejMarker:rejMarker+floor(params.dtAfter*(data.info.system.framerate/10))) = NaN;
+                        end
+                    else
+                        hasNaN = any(isnan(tKeep(iChan, rejMarker:rejMarker-1)));
+                        if hasNaN == 1
+                            tKeepTemp(iChan, rejMarker:rejMarker-1) = NaN;
+                        end
+                    end
+                end
+            end
+        end
+        tKeep = tKeepTemp;
+        lmdata = lmdata.*tKeep;
+        
         % Perform image reconstruction
         [cortexMuA, iJacob] = analysisTools.imageReconstruction(lmdata, jacob, data.info, paramsFile);
         
@@ -168,7 +211,7 @@ for nsub = 1%:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         for iChrom = 1:numel(fieldnames(parcelsSens))
             [gvtd, gvtdMedian] = CalcGVTD(parcelAveraged{iChrom});
             tempTkeep = ones([size(gvtd)]);
-            tempTkeep(gvtd > gvtdMedian + 5*mad(gvtd, 1)) = 0;
+%             tempTkeep(gvtd > gvtdMedian + 5*mad(gvtd, 1)) = 0;
             TkeepChrom{iChrom} = tempTkeep;
         end
         
@@ -199,7 +242,7 @@ for nsub = 1%:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         for iChrom = 1:numel(fieldnames(parcelsSens))
             [gvtd, gvtdMedian] = CalcGVTD(cortexHb(:, :, 1));
             tempTkeep = ones([size(gvtd)]);
-            tempTkeep(gvtd > gvtdMedian + 5*mad(gvtd, 1)) = 0;
+%             tempTkeep(gvtd > gvtdMedian + 5*mad(gvtd, 1)) = 0;
             TkeepChrom{iChrom} = tempTkeep;
         end
         cortexBlockAvgData = cell(data.info.io.Nwl,1);
@@ -249,7 +292,7 @@ for nsub = 1%:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     end
 
     % ---------- Tidying up ----------
-    clearvars -except params jacob driveName capCSV capNames jacobianDir fooVDir maskSeg infoSeg maskParc infoParc matchingFiles prevCapName regCortexGroup cortexCount
+    clearvars -except params jacob driveName capCSV capNames jacobianDir fooVDir maskSeg infoSeg maskParc infoParc matchingFiles tKeepFiles prevCapName regCortexGroup cortexCount
     close all; %incase plotting used
 end
 

@@ -63,9 +63,13 @@ params.parcelDataLoc = fullfile(params.parentDir, 'derivatives', params.parcelDa
 % Age-specific cortical parcellation
 if ~exist('maskParc', 'var')
     [maskParc,infoParc]=LoadVolumetricData([strcat(params.timepoint,'mo_Parc_Reg_Head')], ...
-        fullfile('/Users/sambe/TEMPSTORAGE/', strcat('mri/registered/UNC_to_NeuroDev/No Mask/', params.timepoint, 'mo')), ...
+        fullfile('/Volumes/Extreme SSD/', strcat('mri/registered/UNC_to_NeuroDev/No Mask/', params.timepoint, 'mo')), ...
         'nii.gz');
 end
+
+% load mesh data
+brainmeshLeft = load(strcat('/Volumes/Extreme SSD/mri/meshes/leftHemisphereMesh', params.timepoint,'mo.mat')); % loads nodes and faces
+brainmeshRight = load(strcat('/Volumes/Extreme SSD/mri/meshes/rightHemisphereMesh', params.timepoint,'mo.mat'));
 
 %% Search for task files 
 matchingCortexFiles = testFuncs.getAgeTaskCortexDataFiles(params);
@@ -200,10 +204,6 @@ for nsub = 1:length(matchingCortexFiles)
 
 end
 
-%% load mesh data
-brainmeshLeft = load(strcat('/Users/sambe/TEMPSTORAGE/mri/meshes/leftHemisphereMesh', params.timepoint,'mo.mat')); % loads nodes and faces
-brainmeshRight = load(strcat('/Users/sambe/TEMPSTORAGE/mri/meshes/rightHemisphereMesh', params.timepoint,'mo.mat'));
-
 %% HbO t-testing
 
 % define pairs to be tested
@@ -263,7 +263,14 @@ end
 
 
 %% plot HbO surface data
-paramsPlot.Th.P = 0; 
+tMaxVals = zeros(length(hboTests), 1);
+for t = 1:length(hboTests)
+    thisT = hboTests{t};
+    tMaxVals(t) = max(abs(thisT(:)), [], 'omitnan');
+end
+paramsPlot.Scale = max(tMaxVals); % global max
+paramsPlot.Scale = max(tMaxVals); % global max
+paramsPlot.Th.P = (paramsPlot.Scale)./4; 
 paramsPlot.Th.N = -paramsPlot.Th.P; 
 
 
@@ -276,7 +283,7 @@ end
 
 % define pairs to be tested
 % 1: baseline ---- 2: Hab1 ---- 3: Hab2 ---- 4: Hab3 ---- 5: Nov ---- 6:Post-test
-testPairs = [1 2; 4 2; 5 2; 4 5]; 
+testPairs = [2 1; 2 4; 2 5; 5 4]; 
 
 hbrTests = cell(length(testPairs), 1);
 
@@ -324,9 +331,15 @@ for t = 1:size(testPairs, 1)
 end
 
 %% plot HbR surface data
-paramsPlot.Th.P = 0; 
+tMaxVals = zeros(length(hbrTests), 1);
+for t = 1:length(hbrTests)
+    thisT = hbrTests{t};
+    tMaxVals(t) = max(abs(thisT(:)), [], 'omitnan');
+end
+paramsPlot.Scale = max(tMaxVals); % global max
+paramsPlot.Scale = max(tMaxVals); % global max
+paramsPlot.Th.P = (paramsPlot.Scale)./4; 
 paramsPlot.Th.N = -paramsPlot.Th.P; 
-
 
 for t = 1:length(hbrTests)
     PlotInterpSurfMesh(hbrTests{t}, brainmeshLeft, brainmeshRight, infoParc, paramsPlot);
@@ -394,7 +407,14 @@ for t = 1:size(testPairs, 1)
 end
 
 %% plot HbT surface data
-paramsPlot.Th.P = 0; 
+tMaxVals = zeros(length(hbtTests), 1);
+for t = 1:length(hbtTests)
+    thisT = hbtTests{t};
+    tMaxVals(t) = max(abs(thisT(:)), [], 'omitnan');
+end
+paramsPlot.Scale = max(tMaxVals); % global max
+paramsPlot.Scale = max(tMaxVals); % global max
+paramsPlot.Th.P = (paramsPlot.Scale)./4; 
 paramsPlot.Th.N = -paramsPlot.Th.P; 
 
 for t = 1:length(hbtTests)
@@ -442,7 +462,13 @@ for t = 1:size(testPairs, 1)
 end
 
 %% plot HbD surface data
-paramsPlot.Th.P = 0; 
+tMaxVals = zeros(length(hbdTests), 1);
+for t = 1:length(hbdTests)
+    thisT = hbdTests{t};
+    tMaxVals(t) = max(abs(thisT(:)), [], 'omitnan');
+end
+paramsPlot.Scale = max(tMaxVals); % global max
+paramsPlot.Th.P = (paramsPlot.Scale)./4; 
 paramsPlot.Th.N = -paramsPlot.Th.P; 
 
 for t = 1:length(hbdTests)
