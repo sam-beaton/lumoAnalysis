@@ -83,7 +83,7 @@ for nsub = 1%:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     try
     
         % ------ load/get .nirs data in ndot file form -------
-        data = testFuncs.getNdotFile(matchingFiles{nsub}, paramsFile);
+        data = analysisTools.getNdotFileImageRecon(matchingFiles{nsub}, paramsFile);
 
         % ---------- Get trial numbers ------------
         trialNumbers = analysisTools.getTrialNumbers(data.info);

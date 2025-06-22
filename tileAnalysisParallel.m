@@ -80,12 +80,6 @@ for iTime = 1:length(timepoints)
             
             % ------- View block averaged data ---------
             %analysisTools.viewBlockAveraged(badata, paramsFile);
-    
-            %%%%%%%%%%%%% TEST %%%%%%%%%%%%%%%%%
-            %lmdata = lowpass(lmdata, 0.1, data.info.system.framerate);
-            %[badata, ~, ~, ~, tKeep] = analysisTools.adaptedBlockAverage(lmdata, paramsFile, data.info);
-            %analysisTools.viewBlockAveraged(badata, paramsFile);
-            %%%%%%%%%%%%% TEST %%%%%%%%%%%%%%%%%
             
             % ---------- Obtain block data for each channel ----------
             [channelBlockData, sourceNumbers, detectorNumbers, paramsFile] = analysisTools.getChannelBlockData(data.dc, data.info, paramsFile);

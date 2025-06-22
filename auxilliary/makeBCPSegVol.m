@@ -57,15 +57,6 @@ mask_bin(maskSeg == 250) = 2; %set wm to 2
 mask_bin(maskSeg == 150) = 3; %set gm to 3
 % PlotSlices(mask_bin, infoHead);
 
-% if strcmp(timePoint, '06')
-%     for i = size(mask_bin,1):-1:2
-%         mask_bin(i, :, :) = mask_bin(i-1, :, :);
-%     end
-% %     for i = size(mask_bin,3):-1:2
-% %         mask_bin(:, :, i) = mask_bin(:, :, i-1);
-% %     end
-% end
-
 %PlotSlices(head, infoHead, [], mask_bin) 
 
 %% Get head mask
