@@ -39,15 +39,6 @@ function data = adaptedNirs2ndot(filename, save_file, output)
 % THE SOFTWARE, THE USE OF THE SOFTWARE, OR THIS AGREEMENT, WHETHER 
 % IN BREACH OF CONTRACT, TORT OR OTHERWISE, EVEN IF SUCH PARTY IS 
 % ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
-%
-% Edited 6_6_24 SLB:
-% Added check and switch of SD variables if SD3D present in .nirs file
-% Creates output folder if doesn't already exist
-%
-% Edited 28/3/25
-% - Suppresses message about 2D source and detector locations
-% - Adds info.MEAS.GI using nirs.SD.MeasListAct
-% - Stores stim/pulse data for every channel
 
 
     %% Parameters and Initialization
@@ -58,11 +49,11 @@ function data = adaptedNirs2ndot(filename, save_file, output)
     if ~exist('save_file','var')
         save_file = 1;
     end
-   
+    
     
     %% Data
     nirsData = load(filename, '-mat');
-    data.d= nirsData.d';
+    data.d = nirsData.d';
     if isfield(nirsData, 'dod')
         data.od = nirsData.dod';
     end
@@ -73,12 +64,11 @@ function data = adaptedNirs2ndot(filename, save_file, output)
         data.dc = concData';
     end
 
-    
     %% Check presence of multiple SD variables
     if isfield(nirsData, 'SD3D')
         nirsData.SD = nirsData.SD3D;
     end
-
+    
     %% IO and System parameters
     
     % IO
@@ -96,12 +86,14 @@ function data = adaptedNirs2ndot(filename, save_file, output)
     end
     
     
+    
     %% Paradigm
 
     % Initialize variables
     num_stim = size(nirsData.s,2);
     num_synchs = sum(nirsData.s == 1);
     field_names = cell(num_stim,1);
+
     if isfield(nirsData, 'sCh')
         num_synchs_ch = sum(nirsData.sCh(:) > 0);
     end
@@ -124,6 +116,7 @@ function data = adaptedNirs2ndot(filename, save_file, output)
         % For example, if you have a paradigm with left and right stimuli where left stim is presented first and right stim is presented second...
         % Synchtypes will be as follows: Rest = 1, Left = 2, Right = 3;
         info.paradigm.synchtype = zeros(size(info.paradigm.synchpts)); % initialize synchtype AFTER synchpts created so its the correct size
+        
         for k = 1:num_stim
             % get Pulse names - edited for HaND paradigm by SLB 29/3/25
             stimName = nirsData.CondNames{k};
@@ -150,11 +143,6 @@ function data = adaptedNirs2ndot(filename, save_file, output)
 
         % Set synchtimes
         info.paradigm.synchtimes = synchTot/info.system.framerate;
-
-        %set block lims if possible
-        if isfield(nirsData, 'tHRF')
-            info.paradigm.tHRF = nirsData.tHRF;
-        end
     end
 
     if ~exist('num_synchs_ch', 'var') || num_synchs_ch  == 0
@@ -217,6 +205,8 @@ function data = adaptedNirs2ndot(filename, save_file, output)
         end
     end
 
+    % store channel-wise identified motion
+    info.paradigm.tIncCh = nirsData.tIncCh'; % added SLB 29/5/25
     
     
     %% Optodes
@@ -233,8 +223,8 @@ function data = adaptedNirs2ndot(filename, save_file, output)
                 dpos2 = nirsData.SD.DetPos2;
             else %if no 2D pos, tell the user they need to create their own
                 %disp(['No 2D optode positions in NIRS data, please create your own 2D layout.',...
-                %    newline, ' Place the 2D source coordinates in info.optodes.spos2',... 
-                %    ' and the 2D detector coordinates in info.optodes.dpos2.'])
+                    %newline, ' Place the 2D source coordinates in info.optodes.spos2',... 
+                    %' and the 2D detector coordinates in info.optodes.dpos2.'])
             end
         elseif dimension == 2 % if 2D coords, check for 3D specific pos first
             if (isfield(nirsData.SD, 'SrcPos3') && isfield(nirsData.SD, 'DetPos3')) %if 3D coords, get them, then get 2D coords
@@ -401,11 +391,10 @@ function data = adaptedNirs2ndot(filename, save_file, output)
     %% MEAS
     info.MEAS.GI = nirsData.SD.MeasListAct; %SLB added 29/3/25
     
-
     %% Combine into one object
     data.info = info;
     
-    %% Save Output NeuroDOT File
+    % Save Output NeuroDOT File
     if save_file == 1
         [p,f,e]=fileparts(output);
         if ~isfolder(p)

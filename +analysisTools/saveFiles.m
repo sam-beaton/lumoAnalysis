@@ -19,7 +19,11 @@ function saveFiles(params, nirsFile, parcelData, cortexHb, cortexHbPeak, fooV, c
 
         %save parcel data
         if ~isfolder(parcelDirectoryName)
-            mkdir(parcelDirectoryName);
+            try
+                mkdir(parcelDirectoryName);
+            catch
+                % Folder was created by another worker between check and mkdir
+            end
         end
         save(parcelFileName, 'parcelData');
     end
@@ -35,8 +39,12 @@ function saveFiles(params, nirsFile, parcelData, cortexHb, cortexHbPeak, fooV, c
         cortexHbFileName = fullfile(cortexHbDirectoryName, cortexHbFileName);
 
         %save cortexHb
-        if ~isfolder(cortexHbDirectoryName)
-            mkdir(cortexHbDirectoryName);
+        if ~isfolder(parcelDirectoryName)
+            try
+                mkdir(parcelDirectoryName);
+            catch
+                % Folder was created by another worker between check and mkdir
+            end
         end
         save(cortexHbFileName, 'cortexHb');
     end
@@ -53,7 +61,11 @@ function saveFiles(params, nirsFile, parcelData, cortexHb, cortexHbPeak, fooV, c
 
         %save cortexHb
         if ~isfolder(cortexHbPeakDirectoryName)
-            mkdir(cortexHbPeakDirectoryName);
+            try
+                mkdir(cortexHbPeakDirectoryName);
+            catch
+                % Folder was created by another worker between check and mkdir
+            end
         end
         save(cortexHbPeakFileName, 'cortexHbPeak');
     end
@@ -70,7 +82,11 @@ function saveFiles(params, nirsFile, parcelData, cortexHb, cortexHbPeak, fooV, c
 
         %save cortexHb
         if ~isfolder(fooVDirectoryName)
-            mkdir(fooVDirectoryName);
+            try
+                mkdir(fooVDirectoryName);
+            catch
+                % Folder was created by another worker between check and mkdir
+            end
         end
         save(fooVFileName, 'fooV');
     end
@@ -88,7 +104,11 @@ function saveFiles(params, nirsFile, parcelData, cortexHb, cortexHbPeak, fooV, c
         
         %save cortexMuA
         if ~isfolder(cortexMuaDirectoryName)
-            mkdir(cortexMuaDirectoryName);
+            try
+                mkdir(cortexMuaDirectoryName);
+            catch
+                % Folder was created by another worker between check and mkdir
+            end
         end
         save(cortexMuaFileName, 'cortexMuA');
     end
@@ -106,7 +126,11 @@ function saveFiles(params, nirsFile, parcelData, cortexHb, cortexHbPeak, fooV, c
 
         %save parcel data
         if ~isfolder(channelDirectoryName)
-            mkdir(channelDirectoryName);
+            try
+                mkdir(channelDirectoryName);
+            catch
+                % Folder was created by another worker between check and mkdir
+            end
         end
         save(channelFileName, 'channelData');
     end
@@ -124,7 +148,11 @@ function saveFiles(params, nirsFile, parcelData, cortexHb, cortexHbPeak, fooV, c
 
         %save parcel data
         if ~isfolder(tileDirectoryName)
-            mkdir(tileDirectoryName);
+            try
+                mkdir(tileDirectoryName);
+            catch
+                % Folder was created by another worker between check and mkdir
+            end
         end
         save(tileFileName, 'tileData');
     end

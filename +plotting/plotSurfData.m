@@ -9,7 +9,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %con
 % ---------- User-defined parameters ------------
 params.timepoint = '12'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
-params.nBlocks = 6; %number of trial/condition blocks expected (including baseline)
+params.nBlocks = 5; %number of trial/condition blocks expected
 %storage drive - easier than changing all names all the time
 driveName = '/Volumes/Extreme SSD/';
     
@@ -92,7 +92,7 @@ end
 expectedLength = []; % will hold length of surfData(:)
 pendingNaNs = {};  % {blockIdx, iChrom}
 
-for nsub = 1:length(matchingCortexFiles)
+for nsub = 1:8%length(matchingCortexFiles)
 
     [~, name, ~] = fileparts(matchingCortexFiles{nsub});
     fprintf('\nAnalysing file %d: %s\n', nsub, name);
@@ -130,8 +130,8 @@ for nsub = 1:length(matchingCortexFiles)
         voxelSum = 0;
         voxelCount = 0;
         
-        for blockIdx = 2:nBlocksAvailable
-            included = blockIncluded(blockIdx-1);
+        for blockIdx = 1:nBlocksAvailable
+            included = blockIncluded(blockIdx);
             thisBlock = chromData{blockIdx};
             if isempty(thisBlock) || all(isnan(thisBlock(:)))
 
@@ -184,20 +184,6 @@ for nsub = 1:length(matchingCortexFiles)
                 groupHbrSurfData{blockIdx}{end+1} = surfData(:);
             end
 
-
-            if blockIdx == 2 && included == 1
-                baseBlock = chromData{1};
-                volData = Good_Vox2vol(baseBlock, infoJacob.info.tissue.dim);
-                surfData = affine3d_img(volData, infoJacob.info.tissue.dim, infoParc);
-                surfData(surfData == 0) = NaN; %remove 0s, to prevent biasing t-tests
-                if iChrom == 1
-                    groupHboSurfData{blockIdx-1}{end+1} = surfData(:);
-                else
-                    groupHbrSurfData{blockIdx-1}{end+1} = surfData(:);
-                end
-
-            end
-
         end
 
     end
@@ -206,9 +192,19 @@ end
 
 %% HbO t-testing
 
+% One-sample t-test: HbO Block 1 (Hab1) vs zero
+fprintf('One-sample t-test: HbO Block 1 vs zero\n')
+dataA = cell2mat(groupHboSurfData{1});
+validVoxels = sum(~isnan(dataA), 2) >= size(dataA, 2)/4;
+dataA_valid = dataA(validVoxels, :);
+[~, ~, ~, stats] = ttest(dataA_valid');
+fullTstat = zeros(size(dataA, 1), 1);
+fullTstat(validVoxels) = stats.tstat;
+hboOneSampleTmap = reshape(fullTstat, surfD1, surfD2, surfD3);
+
 % define pairs to be tested
-% 1: baseline ---- 2: Hab1 ---- 3: Hab2 ---- 4: Hab3 ---- 5: Nov ---- 6:Post-test
-testPairs = [2 1; 2 4; 2 5; 5 4]; 
+% 1: Hab1 ---- 2: Hab2 ---- 3: Hab3 ---- 4: Nov ---- 5:Post-test
+testPairs = [1 3; 1 4; 4 3];
 
 hboTests = cell(length(testPairs), 1);
 
@@ -259,7 +255,7 @@ for t = 1:size(testPairs, 1)
 
 end
 
-
+hboTests = [{hboOneSampleTmap}; hboTests];
 
 
 %% plot HbO surface data
@@ -281,12 +277,21 @@ end
 
 %% HbR t-testing
 
+% One-sample t-test: HbR Block 1 (Hab1) vs zero
+fprintf('One-sample t-test: HbR Block 1 vs zero\n')
+dataA = cell2mat(groupHbrSurfData{1});
+validVoxels = sum(~isnan(dataA), 2) >= size(dataA, 2)/4;
+dataA_valid = dataA(validVoxels, :);
+[~, ~, ~, stats] = ttest(dataA_valid');
+fullTstat = zeros(size(dataA, 1), 1);
+fullTstat(validVoxels) = stats.tstat;
+hbrOneSampleTmap = reshape(fullTstat, surfD1, surfD2, surfD3);
+
 % define pairs to be tested
-% 1: baseline ---- 2: Hab1 ---- 3: Hab2 ---- 4: Hab3 ---- 5: Nov ---- 6:Post-test
-testPairs = [2 1; 2 4; 2 5; 5 4]; 
+% 1: Hab1 ---- 2: Hab2 ---- 3: Hab3 ---- 4: Nov ---- 5:Post-test
+testPairs = [1 3; 1 4; 4 3];
 
 hbrTests = cell(length(testPairs), 1);
-
 
 groupData = groupHbrSurfData;
 
@@ -330,6 +335,8 @@ for t = 1:size(testPairs, 1)
 
 end
 
+hbrTests = [{hbrOneSampleTmap}; hbrTests];
+
 %% plot HbR surface data
 tMaxVals = zeros(length(hbrTests), 1);
 for t = 1:length(hbrTests)
@@ -367,7 +374,19 @@ for iBlock = 1:params.nBlocks
 end
 
 %% HbT t-testing
-testPairs = [2 1; 2 4; 2 5; 5 4]; 
+
+% One-sample t-test: HbT Block 1 (Hab1) vs zero
+fprintf('One-sample t-test: HbT Block 1 vs zero\n')
+dataA = cell2mat(groupHbtSurfData{1});
+validVoxels = sum(~isnan(dataA), 2) >= size(dataA, 2)/4;
+dataA_valid = dataA(validVoxels, :);
+[~, ~, ~, stats] = ttest(dataA_valid');
+fullTstat = zeros(size(dataA, 1), 1);
+fullTstat(validVoxels) = stats.tstat;
+hbtOneSampleTmap = reshape(fullTstat, surfD1, surfD2, surfD3);
+
+% 1: Hab1 ---- 2: Hab2 ---- 3: Hab3 ---- 4: Nov ---- 5:Post-test
+testPairs = [1 3; 1 4; 4 3];
 hbtTests = cell(length(testPairs), 1);
 groupData = groupHbtSurfData;
 
@@ -406,6 +425,8 @@ for t = 1:size(testPairs, 1)
     hbtTests{t} = tMap;
 end
 
+hbtTests = [{hbtOneSampleTmap}; hbtTests];
+
 %% plot HbT surface data
 tMaxVals = zeros(length(hbtTests), 1);
 for t = 1:length(hbtTests)
@@ -422,7 +443,19 @@ for t = 1:length(hbtTests)
 end
 
 %% HbD t-testing
-testPairs = [2 1; 2 4; 2 5; 5 4]; 
+
+% One-sample t-test: HbD Block 1 (Hab1) vs zero
+fprintf('One-sample t-test: HbD Block 1 vs zero\n')
+dataA = cell2mat(groupHbdSurfData{1});
+validVoxels = sum(~isnan(dataA), 2) >= size(dataA, 2)/4;
+dataA_valid = dataA(validVoxels, :);
+[~, ~, ~, stats] = ttest(dataA_valid');
+fullTstat = zeros(size(dataA, 1), 1);
+fullTstat(validVoxels) = stats.tstat;
+hbdOneSampleTmap = reshape(fullTstat, surfD1, surfD2, surfD3);
+
+% 1: Hab1 ---- 2: Hab2 ---- 3: Hab3 ---- 4: Nov ---- 5:Post-test
+testPairs = [1 3; 1 4; 4 3];
 hbdTests = cell(length(testPairs), 1);
 groupData = groupHbdSurfData;
 
@@ -460,6 +493,8 @@ for t = 1:size(testPairs, 1)
     
     hbdTests{t} = tMap;
 end
+
+hbdTests = [{hbdOneSampleTmap}; hbdTests];
 
 %% plot HbD surface data
 tMaxVals = zeros(length(hbdTests), 1);

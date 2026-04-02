@@ -35,7 +35,7 @@ function capName = getInfantCap(capCSV, capNames, timepoint, filename)
                 capName = capInfoNames{capRow, "cap_name"}{1};
             elseif isempty(capPosition)
                 capName = capInfoNames{capRow, "cap_name"}{1};
-                warning('No cap position available: using default position.')
+                warning('No cap position available: using default position.');
             else
                 capName = capInfoNames{capRow, "cap_name"}{1};
                 capName = strcat(capName, '_', capPosition);

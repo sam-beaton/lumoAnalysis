@@ -7,7 +7,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '12'; %'01', '06' or '12'
+params.timepoint = '01'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
@@ -36,13 +36,15 @@ params.dtAfter = 190; % finish
 
 % ---------- Derivative parameters -------------
 %data location task and age dependant
-params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', params.preProcDir));
+%params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', params.preProcDir));
+params.dataLoc = fullfile(params.parentDir, 'derivatives', 'preproc');
+
 
 %% Search for task files 
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = [37, 38, 63, 64]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = 1:length(matchingFiles) 
 
     [~, name, ~] = fileparts(matchingFiles{nsub});
     fprintf('\nAnalysing file %d: %s\n', nsub, name);
@@ -118,7 +120,7 @@ for nsub = [37, 38, 63, 64]%1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         tileData.capName = paramsFile.capName;
         
         % ---------- Save variables ----------
-        analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, [], [], [], channelData, tileData);
+        analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, [], [], [], [], [], channelData, tileData);
         
     catch
         fprintf(strcat('Could not run analysis - look into manually.\n'))

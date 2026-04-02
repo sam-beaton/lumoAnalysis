@@ -7,7 +7,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-timepoints = {'06'};%{'01', '06', '12'};
+timepoints = {'01', '06', '12'}; %{'01', '06', '12'};
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
@@ -16,7 +16,7 @@ driveName = '/Volumes/Extreme SSD/';
 %overarching directory containing .nirs files
 params.parentDir = fullfile(driveName, 'dot');
 %processing method (%suffix after 'preproc-' in derivatives folder)
-params.preProcDir = '025LPF'; 
+params.preProcDir = 'tileHb'; 
 % directory for (statistical) outputs
 params.outputDir = fullfile(params.parentDir, 'derivatives'); %Output Directory for files
 
@@ -33,13 +33,11 @@ params.dtAfter = 190; % finish
 
 % ---------- Derivative parameters -------------
 %data location task and age dependant
-params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', params.preProcDir));
+params.dataLoc = fullfile(params.parentDir, 'derivatives', 'preproc');
 
-%%
-% Start a parallel pool (specify number of workers)
-% parpool(length(timepoints));
+% Start a parallel pool (specify number of workers or leave brackets empty to let MATLAB decide)
+parpool(8);
 
-% parfor iTime = 1:length(timepoints)
 for iTime = 1:length(timepoints)
 
     % Create a local copy of params for each worker
@@ -50,7 +48,7 @@ for iTime = 1:length(timepoints)
     matchingFiles = analysisTools.getAgeTaskNirsFiles(paramsLocal);
     
     % Run Analysis
-    for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+    parfor nsub = 1:length(matchingFiles)
     
         [~, name, ~] = fileparts(matchingFiles{nsub});
         fprintf('\nAnalysing file %d: %s\n', nsub, name);
@@ -120,12 +118,12 @@ for iTime = 1:length(timepoints)
             tileData.capName = paramsFile.capName;
             
             % ---------- Save variables ----------
-            analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, [], [], [], channelData, tileData);
+            analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, [], [], [], [], [], channelData, tileData);
             
         catch
             fprintf(strcat('Could not run analysis - look into manually.\n'))
         end
-    
+
         % ---------- Tidying up ----------
         % prevent stale variable carry-over:
         data = [];
@@ -139,10 +137,7 @@ for iTime = 1:length(timepoints)
 end
 
 % Shut down the parallel pool
-% delete(gcp('nocreate'));
+delete(gcp('nocreate'));
 
 fprintf("\n=========================FINISHED PROCESSING===========================\n")
-
-%% TESTING
-
 

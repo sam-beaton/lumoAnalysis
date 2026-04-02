@@ -7,7 +7,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %con
 
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
-params.timepoint = '12'; %'01', '06' or '12'
+params.timepoint = '01'; %'01', '06' or '12'
 params.task = 'hand'; %'hand', 'fc1' or 'fc2'
 
 %storage drive - easier than changing all names all the time
@@ -51,7 +51,7 @@ params.Cmap.P = colorcube; %use custom co§lormap
 
 % ---------- Derivative parameters -------------
 %data location task and age dependant
-params.dataLoc = fullfile(params.parentDir, 'derivatives', strcat('preproc-', params.preProcDir));
+params.dataLoc = fullfile(params.parentDir, 'derivatives', 'preproc');
 
 % ---------- Load files needed for all iterations of the loop ----------
 % Age-specific head segmentation
@@ -64,7 +64,7 @@ end
 % Age-specific cortical parcellation
 if ~exist('maskParc', 'var')
     [maskParc,infoParc]=LoadVolumetricData([strcat(params.timepoint,'mo_Parc_Reg_Head')], ...
-        fullfile('/Users/sambe/TEMPSTORAGE/', strcat('mri/registered/UNC_to_NeuroDev/No Mask/', params.timepoint, 'mo')), ...
+        fullfile('/Volumes/Extreme SSD/', strcat('mri/registered/UNC_to_NeuroDev/No Mask/', params.timepoint, 'mo')), ...
         'nii.gz');
 end
 
@@ -72,7 +72,7 @@ end
 matchingFiles = analysisTools.getAgeTaskNirsFiles(params);
 
 % Run Analysis
-for nsub = 1%:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
+for nsub = 1:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
 
     [~, name, ~] = fileparts(matchingFiles{nsub});
     fprintf('\nAnalysing file %d: %s\n', nsub, name);
@@ -185,7 +185,7 @@ for nsub = 1%:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         end
         allPulses = data.info.paradigm.synchpts(allPulses);
         for iChrom = 1:numel(fieldnames(parcelsSens))
-            [parcelBlockAvgData{iChrom}, ~, ~, parcelBlockData{iChrom}] = testFuncs.getDataAverageBlock( ...
+            [parcelBlockAvgData{iChrom}, ~, ~, parcelBlockData{iChrom}] = analysisTools.getDataAverageBlock( ...
                                                     parcelAveraged{iChrom}, ...
                                                     allPulses, ...
                                                     floor((data.info.system.framerate/10)*paramsFile.dtPre), ...
@@ -205,7 +205,7 @@ for nsub = 1%:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
         cortexBlockAvgData = cell(data.info.io.Nwl,1);
         cortexHbPeak = cell(data.info.io.Nwl,1);
         for iChrom = 1:numel(fieldnames(parcelsSens))
-            [cortexBlockAvgData{iChrom}, ~, ~, cortexBlockData{iChrom}] = testFuncs.getDataAverageBlock( ...
+            [cortexBlockAvgData{iChrom}, ~, ~, cortexBlockData{iChrom}] = analysisTools.getDataAverageBlock( ...
                                                     cortexHb(:,:,iChrom), ...
                                                     allPulses, ...
                                                     floor((data.info.system.framerate/10)*paramsFile.dtPre), ...
@@ -213,7 +213,7 @@ for nsub = 1%:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
                                                     TkeepChrom{iChrom});
         end
         for iChrom = 1:numel(fieldnames(parcelsSens))
-            cortexHbPeak{iChrom} = testFuncs.getCortexChromPeak(cortexBlockData{iChrom}, ...
+            cortexHbPeak{iChrom} = analysisTools.getCortexChromPeak(cortexBlockData{iChrom}, ...
                                                     data.info, ...
                                                     paramsFile, ...
                                                     trialNumbers);
@@ -252,7 +252,5 @@ for nsub = 1%:length(matchingFiles) %01m: 59; 06mo: ? ; 12mo: 25
     clearvars -except params jacob driveName capCSV capNames jacobianDir fooVDir maskSeg infoSeg maskParc infoParc matchingFiles prevCapName regCortexGroup cortexCount
     close all; %incase plotting used
 end
-
-%% TESTING
 
 

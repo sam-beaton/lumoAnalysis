@@ -9,16 +9,16 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/nDotAnalysis')); %con
 p.Cmap='jet'; p.Scale=5; p.Th.P=0; p.Th.N=-p.Th.P; p.PD=1; p.BG=[0,0,0];
 
 timePoint = '12';
-registeredImgsDir = strcat('/Users/sambe/mri/registered/UNC_to_NeuroDev/No Mask/', timePoint, 'mo');
+registeredImgsDir = strcat('/Volumes/Extreme SSD/mri/registered/UNC_to_NeuroDev/No Mask/', timePoint, 'mo');
 
 %% Plot "_head" space together
 [head, infoHead] = LoadVolumetricData( ...
     strcat('ANTS',timePoint,'-0Months3T_head'), ...
-    '/Users/sambe/mri/NeurodevelopmentalMRI/Head', ...
+    '/Volumes/Extreme SSD/mri/NeurodevelopmentalMRI/Head', ...
     'nii.gz');
 [brain, infoBrain] = LoadVolumetricData( ...
     strcat('ANTS',timePoint,'-0Months3T_head_brain'), ...
-    '/Users/sambe/mri/NeurodevelopmentalMRI/Head', ...
+    '/Volumes/Extreme SSD/mri/NeurodevelopmentalMRI/Head', ...
     'nii.gz');
 
 %PlotSlices(head, infoHead, [], brain) 
@@ -55,7 +55,7 @@ mask_bin = zeros(size(head));
 mask_bin(maskSeg == 10) = 1; %set csf to 1
 mask_bin(maskSeg == 250) = 2; %set wm to 2
 mask_bin(maskSeg == 150) = 3; %set gm to 3
-% PlotSlices(mask_bin, infoHead);
+PlotSlices(mask_bin, infoHead);
 
 %PlotSlices(head, infoHead, [], mask_bin) 
 

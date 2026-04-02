@@ -8,7 +8,7 @@
 % SLB adapted from 
 
 %% Pathing and output directory
-clear all; close all; clc;
+%clear all; close all; clc;
 
 % Add toolboxes and relevant directories
 addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT')); %neurodot toolbox
@@ -17,9 +17,10 @@ addpath(genpath('/Users/sambe/Documents/MATLAB/toolboxes/NeuroDOT')); %neurodot 
 % Set output directory
 outputdir = ('/Volumes/Extreme SSD/imageRecon/neurodot/PADs'); %path to directory goes in between quotes
 %Set cap name 
-capName = 'GA00439'; % Create this yourself
+capName = 'GA00547'; % Create this yourself
 %Set data file name - needs to match SD file for cap name
-dataName = '/Volumes/Extreme SSD/dot/derivatives/preproc-025LPF/sub-108g/ses-12/hand/sub-108g_ses-12_task-hand_run-02_preproc-025LPF.nirs';
+dataName = '/Volumes/Extreme SSD/dot/derivatives/preproc/sub-262c/ses-12/hand/sub-262c_ses-12_task-hand_run-01_preproc.nirs';
+
 %% Change working dir to output path
 if ~isfolder(outputdir)
     mkdir(outputdir);
@@ -42,6 +43,42 @@ grid.dpos3 = Data.SD3D.DetPos;
 % If available, place 2D optode positions in grid structure 
 grid.spos2 = Data.SD.SrcPos(:, 1:2);
 grid.dpos2 = Data.SD.DetPos(:, 1:2);
+
+%% TEST
+% Get positions
+src = Data.SD3D.SrcPos;  % [nSrc x 3]
+det = Data.SD3D.DetPos;  % [nDet x 3]
+
+% Number of sources and detectors
+nSrc = size(src, 1);
+nDet = size(det, 1);
+
+% Initialize distance matrix
+distances = zeros(nSrc, nDet);
+
+% Compute pairwise Euclidean distances
+for i = 1:nSrc
+    for j = 1:nDet
+        distances(i, j) = norm(src(i,:) - det(j,:));
+    end
+end
+
+% Flatten distances into a vector
+distVector = distances(:);
+nPairs = numel(distVector);
+
+% Thresholds to test
+thresholds = [10, 15, 20, 25, 30, 35, 40, 45, 50];
+
+% Print header
+fprintf('Threshold (mm)\tChannels ≤ Threshold\tPercentage ≤ Threshold\n');
+
+% Loop through thresholds
+for t = thresholds
+    count = sum(distVector <= t);
+    pct = 100 * count / nPairs;
+    fprintf('%13d\t%21d\t%24.2f%%\n', t, count, pct);
+end
 
 
 %% Create info structure (this is the pad file)
