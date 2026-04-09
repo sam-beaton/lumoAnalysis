@@ -1,4 +1,4 @@
-function saveFiles(params, nirsFile, parcelData, cortexHb, cortexHbPeak, fooV, cortexMuA, channelData, tileData)
+function saveFiles(params, nirsFile, volParcelData, surfParcelData, cortexHb, cortexHbPeak, fooV, cortexMuA, channelData, tileData)
 
 % Save outputs of nDotAnalysis.m
 
@@ -6,7 +6,7 @@ function saveFiles(params, nirsFile, parcelData, cortexHb, cortexHbPeak, fooV, c
     dirParts = strsplit(nirsFileDirec, '/');
     nameParts = split(nirsFileName, '_');
 
-    if exist('parcelData', 'var') && ~isempty(parcelData)
+    if exist('parcelData', 'var') && ~isempty(volParcelData)
         % set filename
         parcelFileName = strcat(nameParts{1}, '_', nameParts{2}, '_', nameParts{3}, '_', nameParts{4}, '_', nameParts{5}, '_', 'parcelHb.mat');
         parcelDirectoryName = fullfile(params.outputDir, ...
@@ -25,6 +25,26 @@ function saveFiles(params, nirsFile, parcelData, cortexHb, cortexHbPeak, fooV, c
                 % Folder was created by another worker between check and mkdir
             end
         end
+        save(parcelFileName, 'volParcelData');
+    end
+
+    if exist('surfParcelData', 'var') && ~isempty(surfParcelData)
+        parcelFileName = strcat(nameParts{1}, '_', nameParts{2}, '_', nameParts{3}, '_', nameParts{4}, '_', nameParts{5}, '_', 'parcelHb.mat');
+        parcelDirectoryName = fullfile(params.outputDir, ...
+            'surfParcelHb', ...
+            dirParts{size(dirParts, 2)-2}, ...
+            dirParts{size(dirParts, 2)-1}, ...
+            dirParts{size(dirParts, 2)}, ...
+            nameParts{4});
+        parcelFileName = fullfile(parcelDirectoryName, parcelFileName);
+
+        if ~isfolder(parcelDirectoryName)
+            try
+                mkdir(parcelDirectoryName);
+            catch
+            end
+        end
+        parcelData = surfParcelData;
         save(parcelFileName, 'parcelData');
     end
 

@@ -261,7 +261,7 @@ for iTime = 1:length(timepoints)
             end
     
             % ---------- Save variables ----------
-            analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, parcelData, [], cortexHbPeak, fooV);
+            analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, parcelData, [], [], cortexHbPeak, fooV);
             
         catch
             fprintf(strcat('Could not run analysis - look into manually.\n'))

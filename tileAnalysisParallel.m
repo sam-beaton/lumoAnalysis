@@ -118,7 +118,7 @@ for iTime = 1:length(timepoints)
             tileData.capName = paramsFile.capName;
             
             % ---------- Save variables ----------
-            analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, [], [], [], [], [], channelData, tileData);
+            analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, [], [], [], [], [], [], channelData, tileData);
             
         catch
             fprintf(strcat('Could not run analysis - look into manually.\n'))
