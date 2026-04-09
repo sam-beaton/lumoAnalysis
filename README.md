@@ -1,4 +1,4 @@
-# nDotAnalysis
+# lumoAnalysis
 
 ## Overview
 This repository contains scripts for data analysis using the NeuroDOT toolbox.
@@ -9,7 +9,8 @@ This repository contains scripts for data analysis using the NeuroDOT toolbox.
 ```
 nDotAnalysis/
 │ 
-├── nDotAnalysis.m # runs image reconstruction and saves data in parcel space
+├── parcelAnalysisVolumetric.m # runs image reconstruction & saves data in volumetric parcel space
+├── parcelAnalysisSurface.m # runs image reconstruction & saves data in parcel space using a surface-based parcellation
 ├── tileAnalysisParallel.m # runs channel and tile space analysis
 │ 
 ├── +analysisTools/ # modular helper functions
