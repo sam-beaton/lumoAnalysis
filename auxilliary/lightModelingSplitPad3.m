@@ -32,9 +32,9 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %con
 % User-set file params
 %%% Change where necessary
 timePoint = '12'; %age of infant: '01', '06' or '12'
-padname='GA00440'; %name of JSON file containing array info
+padname='GA00547'; %name of JSON file containing array info
 arrayPositionAltered = 0;
-arrayPosition = 'R';
+arrayPosition = 'L';
 driveName = '/Volumes/Extreme SSD/'; %storage drive - easier than changing all names all the time
 meshDir = fullfile(driveName, 'imageRecon/neurodot/Meshes/');
 outputDir = fullfile(driveName, 'imageRecon/neurodot/Jacobians/');
@@ -122,7 +122,7 @@ switch padname
         D_1 = 13:36; %right
         D_2 = [1:12, 37:48]; %left
 
-    case {'GA00440', 'GA00438', 'GA00439'}
+    case {'GA00440', 'GA00438', 'GA00439', 'GA00547'}
         %sources - red
         S_1 = 16:33; %right
         S_2 = [1:9, 37:45]; %left
@@ -132,7 +132,7 @@ switch padname
         D_2  = [1:12, 49:60]; %left
         D_3 = [13:20, 45:48]; %frontal
 
-    case {'GA00370', 'GA00369', 'GA00351'}
+    case {'GA00370', 'GA00369', 'GA00351', 'GA00504'}
         %sources - red
         S_1 = 13:27; %right
         S_2 = [1:9, 31:36]; %left
@@ -536,6 +536,8 @@ view(270,25)
 %(split) pade file in which they are contained. Then save this order, and
 %concatenate to provide a full list of sources and detectors.
 %This could probably be rewritten to run faster...
+
+close all; %close any stray plots
 
 if ~strcmp(gridname, 'GA00274') && ~contains(gridname, 'NF')
     %sources
