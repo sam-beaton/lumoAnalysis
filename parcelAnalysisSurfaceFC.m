@@ -3,7 +3,7 @@
 % Wang432 fine-grained functional parcellation instead of the coarser UNC
 % volumetric parcellation.
 %
-% What changes vs your existing script:
+% What changes vs volumetric script:
 %   - maskParc / infoParc loaded from Wang432_Reg_Head.nii.gz instead of
 %     Parc_Reg_Head.nii.gz
 %   - parcelData output is otherwise identical in structure — blockData,
@@ -28,7 +28,7 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis'));
 %% Pathing and parameters
 % ---------- User-defined parameters ------------
 timepoints = {'06', '12'}; % full: {'01', '06', '12'}
-params.task      = 'hand';      % 'hand', 'fc1' or 'fc2'
+params.task      = 'fc';      % 'hand' or 'fc'
 
 driveName = '/Volumes/Extreme SSD/';
 
@@ -40,7 +40,7 @@ params.outputDir  = fullfile(params.parentDir, 'derivatives');
 params.lightSensitivityMin = 0.05;
 params.parcPercentMin      = 0.5;
 
-% ---------- Constant parameters (unchanged) -------------
+% ---------- Constant parameters -------------
 capNames   = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/capNames.csv';
 capCSV     = '/Users/sambe/Library/CloudStorage/OneDrive-King''sCollegeLondon/Documents/INDiGO_docs/cappingData.csv';
 jacobianDir = fullfile(driveName, 'imageRecon/neurodot/Jacobians/');
@@ -114,17 +114,10 @@ for iTime = 1:length(timepoints)
     
         try
     
-            % ------ Load / get .nirs data (unchanged) -------
+            % ------ Load / get .nirs data -------
             data = analysisTools.getNdotFile(matchingFiles{nsub});
     
-            % ---------- Get trial numbers (unchanged) ------------
-            trialNumbers = analysisTools.getTrialNumbers(data.info);
-            if isempty(trialNumbers)
-                fprintf('synchtypes does not match expected pattern. Skipping...\n');
-                continue;
-            end
-    
-            % -------- Preprocessing (unchanged) ---------
+            % -------- Preprocessing ---------
             lmdata = logmean(data.d);
             paramsFile.keep = data.info.pairs.r3d < paramsFile.maxChannelDistance & ...
                               data.info.MEAS.GI;
@@ -133,12 +126,9 @@ for iTime = 1:length(timepoints)
     
             data.info = FindGoodMeas(lmdata, data.info);
             lmdata    = detrend_tts(lmdata);
-            [data.info.GVTD, data.info.DQ_metrics.med_GVTD] = ...
-                CalcGVTD(lmdata(data.info.MEAS.GI & data.info.pairs.r2d < 20, :));
-            gvtdThresh = data.info.DQ_metrics.med_GVTD + 5*mad(data.info.GVTD, 1);
-            TkeepGVTD = data.info.GVTD <= gvtdThresh;
+            TkeepGVTD = data.info.paradigm.tInc;
     
-            % ------- Load Jacobian (unchanged) ------
+            % ------- Load Jacobian ------
             jacobFName = strcat('A_', paramsFile.capName, '_on_HD_Mesh_', ...
                                 paramsFile.timepoint, 'mo.mat');
             if exist('prevCapName', 'var') && ...
@@ -150,11 +140,11 @@ for iTime = 1:length(timepoints)
             end
             jacob = analysisTools.reshapeJacob(jacob);
     
-            % ------- Image reconstruction (unchanged) -------
+            % ------- Image reconstruction -------
             [cortexMuA, iJacob] = analysisTools.imageReconstruction( ...
                 lmdata, jacob, data.info, paramsFile);
     
-            % ------- Spectroscopy (unchanged) --------
+            % ------- Spectroscopy --------
             if ~exist('E', 'var')
                 load('Extinction_Coefficients.mat');
                 spectra{1} = 1; spectra{2} = 1;
@@ -210,19 +200,9 @@ for iTime = 1:length(timepoints)
     %         title('RH parcels in DOT space (max projection)')
     %         colorbar
     
-            % ------- Light coverage (unchanged) -------
+            % ------- Light coverage -------
             fooV = analysisTools.getLightCoverage( ...
                 jacob.A, iJacob, jacob.info, data.info, paramsFile);
-    
-            % After computing fooV
-            sensMap = fooV.lambda1 > params.lightSensitivityMin;
-            [sX, sY, sZ] = ind2sub(size(sensMap), find(sensMap));
-            fprintf('Sensitivity map centroid: %.1f %.1f %.1f\n', mean(sX), mean(sY), mean(sZ));
-            fprintf('Sensitivity X range: %.1f – %.1f\n', min(sX), max(sX));
-            fprintf('Sensitivity Y range: %.1f – %.1f\n', min(sY), max(sY));
-            fprintf('Sensitivity Z range: %.1f – %.1f\n', min(sZ), max(sZ));
-            fprintf('Sensitivity map size: %d %d %d\n', size(sensMap));
-            fprintf('Parcellation mask size: %d %d %d\n', size(regMaskParc));
     
     %         % Check spatial extent of sensitivity mask
     %         figure;
@@ -236,7 +216,7 @@ for iTime = 1:length(timepoints)
     %             regMaskParc >= 431 & regMaskParc <= 862, [], 3))
     %         title('RH sensitive voxels')
     
-            % ------- Parcel sensitivity (unchanged) -------
+            % ------- Parcel sensitivity -------
             % getParcelSensitivity works on integer IDs — Wang432 IDs are handled
             % identically to the coarse UNC IDs.
             parcelsSens = analysisTools.getParcelSensitivity( ...
@@ -247,12 +227,12 @@ for iTime = 1:length(timepoints)
             rhSens = unique(parcelsSens.lambda1(parcelsSens.lambda1 >= 431 & parcelsSens.lambda1 <= 862));
             fprintf('Sensitive parcels — LH: %d, RH: %d\n', numel(lhSens), numel(rhSens));
     
-            % ------- Convert Hb data to DOT volume (unchanged) --------
+            % ------- Convert Hb data to DOT volume --------
             regCortexHb      = cell(2, 1);
             regCortexHb{1}   = Good_Vox2vol(cortexHb(:, :, 1), jacob.info.tissue.dim);
             regCortexHb{2}   = Good_Vox2vol(cortexHb(:, :, 2), jacob.info.tissue.dim);
     
-            % -------- Per-parcel averaging (unchanged) -----------
+            % -------- Per-parcel averaging -----------
             % getParcelAverageFull is called identically — parcelNumbers in the
             % output will now be Wang432 IDs rather than coarse UNC IDs.
             parcelAveraged = cell(data.info.io.Nwl, 1);
@@ -264,81 +244,113 @@ for iTime = 1:length(timepoints)
                         parcelsSens.(lambdaField), regCortexHb{iChrom});
                 parcelAveraged{iChrom} = detrend_tts(parcelAveraged{iChrom});
             end
-    
-            % ---------- Block averaging per parcel (unchanged) ----------
-            parcelBlockData    = cell(data.info.io.Nwl, 1);
-            parcelBlockAvgData = cell(data.info.io.Nwl, 1);
-            allPulses = [];
-            for i = 2:6
-                fieldName = sprintf('Pulse_%d', i);
-                if isfield(data.info.paradigm, fieldName)
-                    thisPulse = data.info.paradigm.(fieldName);
-                    allPulses = [allPulses; thisPulse(:)];
-                end
-            end
 
-            allPulses = data.info.paradigm.synchpts(allPulses);
-            blockLength = floor((data.info.system.framerate/10)*paramsFile.dtAfter);
-            dtPre = floor((data.info.system.framerate/10)*paramsFile.dtPre);
-            badTrials = false(length(allPulses), 1);
-            for iTrial = 1:length(allPulses)
-                windowStart = max(1, allPulses(iTrial) - dtPre);
-                windowEnd = min(allPulses(iTrial) + blockLength - 1, length(TkeepGVTD));
-                badTrials(iTrial) = any(~TkeepGVTD(windowStart:windowEnd));
-            end
-            if any(badTrials)
-                fprintf('GVTD rejected %d / %d trials\n', sum(badTrials), length(allPulses));
-                allPulses(badTrials) = [];
-                trialNumbers(badTrials) = [];
-            end
-            fprintf('GVTD threshold: %.4f | Timepoints rejected: %d / %d (%.1f%%)\n', ...
-                gvtdThresh, sum(~TkeepGVTD), length(TkeepGVTD), 100*mean(~TkeepGVTD));
-            fprintf('Trials remaining after GVTD: %d / %d\n', length(allPulses), length(allPulses)+sum(badTrials));
+%             % -------- some plots to check data -------
+%             % get HbO data (change 1 -> 2 for HbR)
+%             plotData = parcelAveraged{1};  % [parcels x time]
+%             
+%             % --- i. Plot time series data ---
+%             % Time vector
+%             fs = data.info.system.framerate; % if available
+%             t = (0:size(plotData,2)-1) / fs;
+%             % all data
+%             figure;
+%             plot(t, plotData');  % transpose so time is on x-axis
+%             xlabel('Time (s)');
+%             ylabel('Signal');
+%             title('Parcel-averaged time series (HbO)');
+%             % first 10 parcels
+%             figure;
+%             plot(t, plotData(1:10, :)');  % first 10 parcels
+%             title('First 10 parcels (HbO)');
+%             xlabel('Time (s)');
+% 
+%             % --- ii. Plot correlation ---
+%             % transpose data for correlation calc.
+%             R = corr(plotData');  % transpose → [time x parcels]
+%             % colourblind colormap
+%             n = 256;
+%             % Define anchors
+%             red   = [0.75 0.15 0.15];   % muted red (negative)
+%             white = [1    1    1];      % zero
+%             blue  = [0.10 0.35 0.80];   % slightly stronger blue (positive)
+%             % Slight asymmetry: give positives more resolution
+%             negN = round(n * 0.45);
+%             posN = n - negN;
+%             % Build colormap
+%             cmap = [linspace(red(1),white(1),negN)', ...
+%                     linspace(red(2),white(2),negN)', ...
+%                     linspace(red(3),white(3),negN)';
+%                     linspace(white(1),blue(1),posN)', ...
+%                     linspace(white(2),blue(2),posN)', ...
+%                     linspace(white(3),blue(3),posN)'];
+%             % plot figure 
+%             figure;
+%             imagesc(R);
+%             axis square;
+%             caxis([-1 1]);  % fix scale
+%             colormap(cmap);
+%             colorbar
+% 
+%             % --- iii. print some correlation summary stats ---
+%             % Remove diagonal (self-correlations)
+%             n = size(R,1);
+%             mask = ~eye(n);
+%             Rvals = R(mask);
+%             % Basic stats
+%             fConn.mean   = mean(Rvals);
+%             fConn.median = median(Rvals);
+%             fConn.std    = std(Rvals);
+%             % Positive / negative split
+%             fConn.mean_pos = mean(Rvals(Rvals > 0));
+%             fConn.mean_neg = mean(Rvals(Rvals < 0));
+%             % Strength (absolute connectivity)
+%             fConn.mean_abs = mean(abs(Rvals));
+%             % Proportion of positive edges
+%             fConn.prop_pos = sum(Rvals > 0) / numel(Rvals);
+%             % Extremes
+%             fConn.max = max(Rvals);
+%             fConn.min = min(Rvals);
+%             % Display
+%             disp(fConn);
+
+            % ----- Bundle data, start/end times, and sampling rate ----
+            fc.data           = parcelAveraged;
+            fc.startIdx       = data.info.paradigmFull.synchpts(1);
+            fc.endIdx         = data.info.paradigmFull.synchpts(2);
+            fc.startTime      = data.info.paradigmFull.synchtimes(1);
+            fc.endTime        = data.info.paradigmFull.synchtimes(2);
+            fc.framerate      = data.info.system.framerate;
+
     
-            for iChrom = 1:numel(fieldnames(parcelsSens))
-                [parcelBlockAvgData{iChrom}, ~, ~, parcelBlockData{iChrom}, blockRemoved] = ...
-                    analysisTools.getDataAverageBlock( ...
-                        parcelAveraged{iChrom}, ...
-                        allPulses, ...
-                        floor((data.info.system.framerate / 10) * paramsFile.dtPre), ...
-                        floor((data.info.system.framerate / 10) * paramsFile.dtAfter));
-            end
-    
-            paramsFile.blockRemoved = blockRemoved;
-            if ~isempty(blockRemoved)
-                trialNumbers(blockRemoved) = [];
-            end
-            fprintf('Blocks removed by chopBlocks: %d\n', length(blockRemoved));
-            fprintf('Final trial count: %d\n', length(trialNumbers));
-            fprintf('  DONE: %d LH sensitive parcels, %d RH sensitive parcels, %d trials\n', ...
-                numel(lhSens), numel(rhSens), numel(trialNumbers));
+            % ----- Separately, save data which hasn't been excluded by GVTD -----
+            fcClean = analysisTools.applyGVTDMask(parcelAveraged, TkeepGVTD, data.info);
     
             % ---------- Housekeeping ------------
             prevCapName = paramsFile.capName;
 
             % ---------- Get block data for each voxel ----------
-            cortexBlockAvgData = cell(data.info.io.Nwl, 1);
-            cortexHbPeak = cell(data.info.io.Nwl, 1);
-            for iChrom = 1:numel(fieldnames(parcelsSens))
-                [cortexBlockAvgData{iChrom}, ~, ~, cortexBlockData{iChrom}, ~] = ...
-                    analysisTools.getDataAverageBlock( ...
-                        cortexHb(:,:,iChrom), ...
-                        allPulses, ...
-                        floor((data.info.system.framerate/10)*paramsFile.dtPre), ...
-                        floor((data.info.system.framerate/10)*paramsFile.dtAfter));
-            end
-            for iChrom = 1:numel(fieldnames(parcelsSens))
-                cortexHbPeak{iChrom} = analysisTools.getCortexChromPeak(cortexBlockData{iChrom}, ...
-                                                        data.info, ...
-                                                        paramsFile, ...
-                                                        trialNumbers);
-            end
+%             cortexBlockAvgData = cell(data.info.io.Nwl, 1);
+%             cortexHbPeak = cell(data.info.io.Nwl, 1);
+%             for iChrom = 1:numel(fieldnames(parcelsSens))
+%                 [cortexBlockAvgData{iChrom}, ~, ~, cortexBlockData{iChrom}, ~] = ...
+%                     analysisTools.getDataAverageBlock( ...
+%                         cortexHb(:,:,iChrom), ...
+%                         allPulses, ...
+%                         floor((data.info.system.framerate/10)*paramsFile.dtPre), ...
+%                         floor((data.info.system.framerate/10)*paramsFile.dtAfter));
+%             end
+%             for iChrom = 1:numel(fieldnames(parcelsSens))
+%                 cortexHbPeak{iChrom} = analysisTools.getCortexChromPeak(cortexBlockData{iChrom}, ...
+%                                                         data.info, ...
+%                                                         paramsFile, ...
+%                                                         trialNumbers);
+%             end
     
             % ---------- Join parcel data ----------
             parcelData                = struct;
-            parcelData.blockData      = parcelBlockData;
-            parcelData.blockAvgData   = parcelBlockAvgData;
-            parcelData.trialNumbers   = trialNumbers;
+            parcelData.averaged       = fc;
+            parcelData.averagedClean  = fcClean;
             parcelData.parcelNumbers  = parcelNumbers;  % now Wang432 IDs
             parcelData.capName        = paramsFile.capName;
     
@@ -347,17 +359,12 @@ for iTime = 1:length(timepoints)
             parcelData.lhParcelIDs = parcelNumbers{1}(parcelNumbers{1} <= 430);
             parcelData.rhParcelIDs = parcelNumbers{1}(parcelNumbers{1} >  430) - 430;
     
-            for iChrom = 1:2
-                parcelData.blockData{iChrom} = permute( ...
-                    parcelData.blockData{iChrom}, [1 3 2]);
-            end
-    
-            % ---------- Save (unchanged) ----------
+            % ---------- Save ----------
             % Note: if analysisTools.saveFiles uses a filename suffix based on the
             % parcellation, you may want to add a 'wang432' tag here to avoid
             % overwriting your existing coarse-parcel outputs.
             analysisTools.saveFiles(paramsFile, matchingFiles{nsub}, ...
-                                [], parcelData, [], cortexHbPeak, fooV);
+                                [], parcelData, [], [], []);
     
         catch ME
             fprintf('Could not run analysis for %s:\n  %s\n', name, ME.message);

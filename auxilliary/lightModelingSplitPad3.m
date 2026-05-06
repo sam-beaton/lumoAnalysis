@@ -31,10 +31,10 @@ addpath(genpath('/Users/sambe/Documents/GitHubRepositories/lumoAnalysis')); %con
 
 % User-set file params
 %%% Change where necessary
-timePoint = '12'; %age of infant: '01', '06' or '12'
-padname='GA00547'; %name of JSON file containing array info
-arrayPositionAltered = 0;
-arrayPosition = 'L';
+timePoint = '01'; %age of infant: '01', '06' or '12'
+padname='GA00351'; %name of JSON file containing array info
+arrayPositionAltered = 1;
+arrayPosition = '096';
 driveName = '/Volumes/Extreme SSD/'; %storage drive - easier than changing all names all the time
 meshDir = fullfile(driveName, 'imageRecon/neurodot/Meshes/');
 outputDir = fullfile(driveName, 'imageRecon/neurodot/Jacobians/');
